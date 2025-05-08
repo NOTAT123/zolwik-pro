@@ -377,11 +377,7 @@
 
         // Utwórz lub aktualizuj marker lokalizacji
         if (!userLocationMarker) {
-          userLocationMarker = new tt.Marker({
-            color: '#FF0000',
-            width: 20,
-            height: 20
-          })
+          userLocationMarker = new tt.Marker()
             .setLngLat(userLocation)
             .addTo(map);
 
@@ -396,18 +392,7 @@
           userMovedMap = false;
           updateCenterButtonVisibility();
         } else {
-          // Płynna aktualizacja pozycji markera
-          const currentPos = userLocationMarker.getLngLat();
-          const newPos = [longitude, latitude];
-          
-          const distance = Math.sqrt(
-            Math.pow(newPos[0] - currentPos.lng, 2) + 
-            Math.pow(newPos[1] - currentPos.lat, 2)
-          );
-          
-          if (distance > 0.000001 && accuracy <= 10) {
-            userLocationMarker.setLngLat(userLocation);
-          }
+          userLocationMarker.setLngLat(userLocation);
         }
 
         // Aktualizacja kierunku
