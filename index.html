@@ -112,6 +112,16 @@
         background-repeat: no-repeat;
         background-position: center;
         transform-origin: center center;
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+      }
+
+      .marker-container {
+        width: 0;
+        height: 0;
+        position: relative;
       }
 
       .user-accuracy-circle {
@@ -180,7 +190,9 @@
       // Komunikaty błędów
       const messages = {
         permissionDenied: "Dostęp do lokalizacji został zablokowany. Zmień ustawienia przeglądarki, aby umożliwić geolokalizację.",
-        notAvailable: "Nie można określić Twojej lokalizacji. Upewnij się, że usługi lokalizacji są włączone."
+        notAvailable: "Nie można określić Twojej lokalizacji. Upewnij się, że usługi lokalizacji są włączone.",
+        timeout: "Przekroczono czas oczekiwania na lokalizację. Spróbuj ponownie.",
+        default: "Wystąpił błąd podczas określania lokalizacji. Spróbuj odświeżyć stronę."
       };
 
       // Zmienne stanu
@@ -194,6 +206,9 @@
       let headingTimeout = null;
       let mapRotationEnabled = true;
       let autoCenteringEnabled = true;
+      let isMapCentered = true; // Domyślnie włączone centrowanie
+      let lastMapMoveTime = 0;
+      let userMovedMap = false; // Nowa zmienna do śledzenia czy użytkownik przesunął mapę
 
       // Obsługa ruchu drogowego
       trafficToggle.addEventListener("change", () => {
@@ -233,11 +248,97 @@
               key: apiKey,
               style: "tomtom://vector/incident",
               refresh: 30000, // Odświeżanie co 30 sekund
+              minZoom: 5,
+              maxZoom: 19,
+              language: 'pl-PL'
+            });
+
+            // Dodaj warstwę do mapy
+            map.addLayer(trafficIncidentsLayer);
+
+            // Dodaj obsługę kliknięcia w incydent
+            map.on('click', 'incidents', (e) => {
+              if (e.features.length > 0) {
+                const incident = e.features[0].properties;
+                const coordinates = e.features[0].geometry.coordinates.slice();
+                const description = incident.description || 'Brak opisu';
+                const type = incident.type || 'Nieznany typ';
+                const severity = incident.severity || 'Nieznana ważność';
+
+                // Utwórz popup z informacjami o incydencie
+                new tt.Popup()
+                  .setLngLat(coordinates)
+                  .setHTML(`
+                    <div style="padding: 10px;">
+                      <h3 style="margin: 0 0 5px 0;">${type}</h3>
+                      <p style="margin: 0 0 5px 0;"><strong>Opis:</strong> ${description}</p>
+                      <p style="margin: 0;"><strong>Ważność:</strong> ${severity}</p>
+                    </div>
+                  `)
+                  .addTo(map);
+              }
+            });
+
+            // Zmień kursor przy najechaniu na incydent
+            map.on('mouseenter', 'incidents', () => {
+              map.getCanvas().style.cursor = 'pointer';
+            });
+
+            map.on('mouseleave', 'incidents', () => {
+              map.getCanvas().style.cursor = '';
+            });
+
+            // Dodaj legendę incydentów
+            const legend = document.createElement('div');
+            legend.id = 'incidents-legend';
+            legend.style.display = 'none';
+            legend.style.position = 'absolute';
+            legend.style.bottom = '30px';
+            legend.style.left = '10px';
+            legend.style.backgroundColor = 'white';
+            legend.style.padding = '10px';
+            legend.style.borderRadius = '4px';
+            legend.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+            legend.style.zIndex = '1';
+            legend.innerHTML = `
+              <h4 style="margin: 0 0 10px 0;">Legenda incydentów</h4>
+              <div style="display: grid; grid-template-columns: auto 1fr; gap: 5px; align-items: center;">
+                <span style="display: inline-block; width: 10px; height: 10px; background: #ff0000; border-radius: 50%;"></span>
+                <span>Wypadek</span>
+                <span style="display: inline-block; width: 10px; height: 10px; background: #ffa500; border-radius: 50%;"></span>
+                <span>Zatłoczenie</span>
+                <span style="display: inline-block; width: 10px; height: 10px; background: #ffff00; border-radius: 50%;"></span>
+                <span>Roboty drogowe</span>
+                <span style="display: inline-block; width: 10px; height: 10px; background: #ff00ff; border-radius: 50%;"></span>
+                <span>Uszkodzony pojazd</span>
+                <span style="display: inline-block; width: 10px; height: 10px; background: #00ffff; border-radius: 50%;"></span>
+                <span>Zamknięty pas</span>
+                <span style="display: inline-block; width: 10px; height: 10px; background: #000000; border-radius: 50%;"></span>
+                <span>Zamknięta droga</span>
+                <span style="display: inline-block; width: 10px; height: 10px; background: #ff4500; border-radius: 50%;"></span>
+                <span>Zagrożenie na drodze</span>
+                <span style="display: inline-block; width: 10px; height: 10px; background: #800080; border-radius: 50%;"></span>
+                <span>Wydarzenie planowane</span>
+                <span style="display: inline-block; width: 10px; height: 10px; background: #4169e1; border-radius: 50%;"></span>
+                <span>Zła pogoda</span>
+              </div>
+            `;
+            document.body.appendChild(legend);
+
+            // Pokaż/ukryj legendę przy zmianie stanu checkboxa
+            incidentsCheckbox.addEventListener('change', () => {
+              legend.style.display = incidentsCheckbox.checked ? 'block' : 'none';
             });
           }
-          map.addLayer(trafficIncidentsLayer);
         } else if (trafficIncidentsLayer) {
           map.removeLayer(trafficIncidentsLayer);
+          trafficIncidentsLayer = null;
+          
+          // Ukryj legendę
+          const legend = document.getElementById('incidents-legend');
+          if (legend) {
+            legend.style.display = 'none';
+          }
         }
       });
 
@@ -264,11 +365,15 @@
           return;
         }
 
-        // Opcje geolokalizacji
+        // Opcje geolokalizacji z maksymalną dokładnością
         const options = {
           enableHighAccuracy: true,
           maximumAge: 0,
-          timeout: 10000
+          timeout: 10000,
+          // Dodatkowe opcje dla maksymalnej dokładności
+          desiredAccuracy: 1,
+          desiredPositionAccuracy: 1,
+          desiredHeadingAccuracy: 1
         };
 
         // Rozpocznij śledzenie lokalizacji
@@ -277,28 +382,32 @@
           handleLocationError,
           options
         );
-
-        // Sprawdź uprawnienia
-        handlePermissionDenied();
       }
 
       // Aktualizacja lokalizacji użytkownika
       function updateUserLocation(position) {
         const { latitude, longitude, accuracy, heading } = position.coords;
+        
+        // Sprawdź dokładność pozycji
+        if (accuracy > 10) { // Ignoruj pozycje z dokładnością gorszą niż 10 metrów
+          return;
+        }
+
         const userLocation = [longitude, latitude];
         const currentTime = Date.now();
 
         // Utwórz lub aktualizuj marker lokalizacji
         if (!userLocationMarker) {
-          // Tworzenie elementu HTML dla markera kierunku
+          const container = document.createElement('div');
+          container.className = 'marker-container';
+          
           const el = document.createElement('div');
           el.className = 'user-direction-marker';
+          container.appendChild(el);
           
-          // Tworzenie markera
           userLocationMarker = new tt.Marker({
-            element: el,
-            anchor: 'center',
-            offset: [0, 0] // Centruj marker dokładnie na pozycji
+            element: container,
+            anchor: 'center'
           })
             .setLngLat(userLocation)
             .addTo(map);
@@ -306,27 +415,41 @@
           // Po pierwszym pobraniu lokalizacji, wycentruj mapę
           map.flyTo({
             center: userLocation,
-            zoom: 17,
+            zoom: 19,
             duration: 1000
           });
           
           isMapCentered = true;
+          userMovedMap = false;
+          updateCenterButtonVisibility();
         } else {
-          userLocationMarker.setLngLat(userLocation);
+          // Płynna aktualizacja pozycji markera
+          const currentPos = userLocationMarker.getLngLat();
+          const newPos = [longitude, latitude];
+          
+          // Oblicz odległość między aktualną a nową pozycją
+          const distance = Math.sqrt(
+            Math.pow(newPos[0] - currentPos.lng, 2) + 
+            Math.pow(newPos[1] - currentPos.lat, 2)
+          );
+          
+          // Aktualizuj pozycję tylko jeśli zmiana jest znacząca i dokładność jest dobra
+          if (distance > 0.000001 && accuracy <= 10) {
+            userLocationMarker.setLngLat(userLocation);
+          }
         }
 
-        // Aktualizuj kierunek na podstawie heading z API
-        // lub oblicz na podstawie ruchu, jeśli heading nie jest dostępny
+        // Aktualizacja kierunku
         if (heading !== null && heading !== undefined) {
-          // Użyj bezpośrednio heading z API GPS
-          userHeading = heading;
-        } else if (lastPosition && (currentTime - lastPositionTimestamp) > 500) {
-          // Oblicz kierunek na podstawie ostatniej pozycji, jeśli minęło przynajmniej 0.5s
-          // i użytkownik przemieścił się wystarczająco daleko
-          const minDistance = 3; // Minimalna odległość w metrach
+          const headingDiff = Math.abs(heading - userHeading);
+          if (headingDiff > 1) {
+            userHeading = heading;
+            updateRotation();
+          }
+        } else if (lastPosition && (currentTime - lastPositionTimestamp) > 100) {
+          const minDistance = 1;
           
-          // Oblicz przybliżoną odległość między punktami
-          const R = 6371e3; // Promień ziemi w metrach
+          const R = 6371e3;
           const lat1 = lastPosition[1] * Math.PI / 180;
           const lat2 = latitude * Math.PI / 180;
           const dLat = (latitude - lastPosition[1]) * Math.PI / 180;
@@ -339,73 +462,40 @@
           const distance = R * c;
           
           if (distance > minDistance) {
-            // Oblicz kierunek ruchu
             const calculatedHeading = calculateHeading(
               lastPosition[1], lastPosition[0], 
               latitude, longitude
             );
             
-            // Zastosuj wygładzanie kierunku
+            const smoothingFactor = 0.2;
             userHeading = userHeading !== null ? 
-              userHeading * 0.7 + calculatedHeading * 0.3 : calculatedHeading;
+              userHeading * (1 - smoothingFactor) + calculatedHeading * smoothingFactor : 
+              calculatedHeading;
               
-            // Zresetuj timer wygasania kierunku
+            updateRotation();
+            
             clearTimeout(headingTimeout);
             headingTimeout = setTimeout(() => {
-              // Po zakończeniu ruchu nie resetujemy kierunku, aby zachować orientację mapy
               updateRotation();
-            }, 10000);
+            }, 5000);
           }
         }
 
-        // Jeśli nie mamy żadnego heading, użyj domyślnego (0 - północ)
-        if (userHeading === null) {
-          userHeading = 0;
-        }
-
-        // Zapisz aktualną pozycję do porównania przy następnym odczycie
+        // Zapisz aktualną pozycję
         lastPosition = [longitude, latitude];
         lastPositionTimestamp = currentTime;
 
-        // Aktualizuj kierunek strzałki i mapy
-        updateRotation();
+        // Aktualizuj okrąg dokładności
+        updateAccuracyCircle(userLocation, accuracy);
 
-        // Utwórz lub aktualizuj okrąg dokładności
-        if (!userAccuracyCircle) {
-          const el = document.createElement('div');
-          el.className = 'user-accuracy-circle';
-          
-          userAccuracyCircle = new tt.Marker({
-            element: el,
-            anchor: 'center'
-          })
-            .setLngLat(userLocation)
-            .addTo(map);
-        } else {
-          userAccuracyCircle.setLngLat(userLocation);
-        }
-
-        // Aktualizuj wielkość okręgu dokładności (promień w metrach)
-        if (userAccuracyCircle.getElement()) {
-          // Konwersja metrów na piksele na danym zoomie
-          const pixelSize = accuracy / 0.075 / Math.pow(2, map.getZoom());
-          userAccuracyCircle.getElement().style.width = `${pixelSize}px`;
-          userAccuracyCircle.getElement().style.height = `${pixelSize}px`;
-        }
-
-        // Wyśrodkuj i obróć mapę w stylu Yanosik, jeśli opcja jest włączona
-        if (isMapCentered && mapRotationEnabled) {
-          // W trybie Yanosik ustawiamy mapę tak, aby kierunek ruchu był zawsze na górze (bearing = heading)
+        // Centrowanie mapy
+        if (isMapCentered && !userMovedMap && currentTime - lastMapMoveTime > 500) {
+          const bearing = mapRotationEnabled ? userHeading : 0;
           map.easeTo({
             center: userLocation,
-            bearing: userHeading,
-            duration: 300
-          });
-        } else if (isMapCentered) {
-          // Jeśli rotacja wyłączona, tylko centruj
-          map.easeTo({
-            center: userLocation,
-            duration: 300
+            bearing: bearing,
+            duration: 300,
+            easing: (t) => t * (2 - t)
           });
         }
       }
@@ -425,33 +515,54 @@
 
       // Obsługa błędów geolokalizacji
       function handleLocationError(error) {
+        console.error('Błąd geolokalizacji:', error);
+        
         switch (error.code) {
           case error.PERMISSION_DENIED:
             displayErrorMessage(messages.permissionDenied);
             break;
           case error.POSITION_UNAVAILABLE:
-          case error.TIMEOUT:
             displayErrorMessage(messages.notAvailable);
             break;
+          case error.TIMEOUT:
+            displayErrorMessage(messages.timeout);
+            break;
+          default:
+            displayErrorMessage(messages.default);
         }
-      }
 
-      // Obsługa przypadku, gdy uprawnienia do geolokalizacji są już zablokowane
-      function handlePermissionDenied() {
-        if ('permissions' in navigator) {
-          navigator.permissions.query({name: 'geolocation'})
-            .then(function(result) {
-              if (result.state === 'denied') {
-                displayErrorMessage(messages.permissionDenied);
-              }
-            });
-        }
+        // Spróbuj ponownie po 5 sekundach
+        setTimeout(() => {
+          if (userWatchId === null) {
+            startUserLocationTracking();
+          }
+        }, 5000);
       }
 
       // Wyświetlanie komunikatu o błędzie
       function displayErrorMessage(message) {
         messageBoxContent.textContent = message;
         messageBox.removeAttribute('hidden');
+        
+        // Dodaj przycisk "Spróbuj ponownie"
+        const retryButton = document.createElement('button');
+        retryButton.textContent = 'Spróbuj ponownie';
+        retryButton.style.marginLeft = '10px';
+        retryButton.style.padding = '5px 10px';
+        retryButton.style.cursor = 'pointer';
+        
+        retryButton.onclick = function() {
+          messageBox.setAttribute('hidden', true);
+          startUserLocationTracking();
+        };
+        
+        // Usuń poprzedni przycisk jeśli istnieje
+        const oldButton = messageBox.querySelector('button');
+        if (oldButton) {
+          oldButton.remove();
+        }
+        
+        messageBox.appendChild(retryButton);
       }
 
       // Zamykanie komunikatu o błędzie
@@ -461,29 +572,28 @@
 
       // Obsługa przycisku centrowania
       centerButton.addEventListener('click', function() {
-        // Jeśli mamy lokalizację użytkownika
         if (userLocationMarker) {
           const userLocation = userLocationMarker.getLngLat();
-          const bearing = mapRotationEnabled && userHeading !== null ? userHeading : 0;
+          const bearing = mapRotationEnabled ? userHeading : 0;
           
           map.flyTo({
             center: userLocation,
-            zoom: 17,
+            zoom: 19,
             bearing: bearing,
             duration: 700
           });
           
           isMapCentered = true;
+          userMovedMap = false;
           updateCenterButtonVisibility();
         } else {
-          // Jeśli nie mamy jeszcze lokalizacji, spróbuj ją uzyskać
           startUserLocationTracking();
         }
       });
 
       // Aktualizacja widoczności przycisku centrowania
       function updateCenterButtonVisibility() {
-        if (isMapCentered) {
+        if (isMapCentered && !userMovedMap) {
           centerButton.classList.remove('visible');
         } else {
           centerButton.classList.add('visible');
@@ -492,8 +602,9 @@
 
       // Obsługa zmiany widoku mapy
       map.on('move', function(e) {
-        // Jeśli mapa jest poruszana przez użytkownika, wyłącz centrowanie
-        if (e.originalEvent && userLocationMarker) {
+        if (e.originalEvent) {
+          lastMapMoveTime = Date.now();
+          userMovedMap = true;
           isMapCentered = false;
           updateCenterButtonVisibility();
         }
@@ -521,6 +632,29 @@
         startUserLocationTracking();
         updateCenterButtonVisibility();
       });
+
+      // Aktualizacja okręgu dokładności
+      function updateAccuracyCircle(userLocation, accuracy) {
+        if (!userAccuracyCircle) {
+          const el = document.createElement('div');
+          el.className = 'user-accuracy-circle';
+          
+          userAccuracyCircle = new tt.Marker({
+            element: el,
+            anchor: 'center'
+          })
+            .setLngLat(userLocation)
+            .addTo(map);
+        } else {
+          userAccuracyCircle.setLngLat(userLocation);
+        }
+
+        if (userAccuracyCircle.getElement()) {
+          const pixelSize = accuracy / 0.075 / Math.pow(2, map.getZoom());
+          userAccuracyCircle.getElement().style.width = `${pixelSize}px`;
+          userAccuracyCircle.getElement().style.height = `${pixelSize}px`;
+        }
+      }
     </script>
   </body>
 </html>
