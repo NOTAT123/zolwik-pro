@@ -67,7 +67,7 @@
         cursor: pointer;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         z-index: 2;
-        display: none; /* Domyślnie ukryty */
+        display: none;
         transition: opacity 0.3s ease-in-out;
         opacity: 0;
       }
@@ -102,26 +102,6 @@
         margin-left: 10px;
         cursor: pointer;
         font-size: 16px;
-      }
-
-      .user-direction-marker {
-        width: 40px;
-        height: 40px;
-        background-image: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="%23ff8000"><path d="M256 0L32 445.7 256 352l224 93.7z"/></svg>');
-        background-size: contain;
-        background-repeat: no-repeat;
-        background-position: center;
-        transform-origin: center center;
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
-      }
-
-      .marker-container {
-        width: 0;
-        height: 0;
-        position: relative;
       }
 
       .user-accuracy-circle {
@@ -206,9 +186,9 @@
       let headingTimeout = null;
       let mapRotationEnabled = true;
       let autoCenteringEnabled = true;
-      let isMapCentered = true; // Domyślnie włączone centrowanie
+      let isMapCentered = true;
       let lastMapMoveTime = 0;
-      let userMovedMap = false; // Nowa zmienna do śledzenia czy użytkownik przesunął mapę
+      let userMovedMap = false;
 
       // Obsługa ruchu drogowego
       trafficToggle.addEventListener("change", () => {
@@ -388,8 +368,7 @@
       function updateUserLocation(position) {
         const { latitude, longitude, accuracy, heading } = position.coords;
         
-        // Sprawdź dokładność pozycji
-        if (accuracy > 10) { // Ignoruj pozycje z dokładnością gorszą niż 10 metrów
+        if (accuracy > 10) {
           return;
         }
 
@@ -398,16 +377,10 @@
 
         // Utwórz lub aktualizuj marker lokalizacji
         if (!userLocationMarker) {
-          const container = document.createElement('div');
-          container.className = 'marker-container';
-          
-          const el = document.createElement('div');
-          el.className = 'user-direction-marker';
-          container.appendChild(el);
-          
           userLocationMarker = new tt.Marker({
-            element: container,
-            anchor: 'center'
+            color: '#FF0000',
+            width: 20,
+            height: 20
           })
             .setLngLat(userLocation)
             .addTo(map);
@@ -427,13 +400,11 @@
           const currentPos = userLocationMarker.getLngLat();
           const newPos = [longitude, latitude];
           
-          // Oblicz odległość między aktualną a nową pozycją
           const distance = Math.sqrt(
             Math.pow(newPos[0] - currentPos.lng, 2) + 
             Math.pow(newPos[1] - currentPos.lat, 2)
           );
           
-          // Aktualizuj pozycję tylko jeśli zmiana jest znacząca i dokładność jest dobra
           if (distance > 0.000001 && accuracy <= 10) {
             userLocationMarker.setLngLat(userLocation);
           }
@@ -500,16 +471,13 @@
         }
       }
 
-      // Aktualizacja rotacji strzałki i mapy
+      // Aktualizacja rotacji mapy
       function updateRotation() {
-        // Aktualizacja rotacji strzałki
-        if (userLocationMarker && userLocationMarker.getElement()) {
-          if (userHeading !== null) {
-            userLocationMarker.getElement().style.transform = `rotate(${userHeading}deg)`;
-          } else {
-            // Domyślna rotacja, gdy nie ma kierunku
-            userLocationMarker.getElement().style.transform = 'rotate(0deg)';
-          }
+        if (isMapCentered && !userMovedMap && mapRotationEnabled) {
+          map.easeTo({
+            bearing: userHeading,
+            duration: 300
+          });
         }
       }
 
