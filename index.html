@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <title>Mapa z ruchem drogowym</title>
+    <link
+      rel="stylesheet"
+      href="https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.25.0/maps/maps.css"
+    />
+    <script src="https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.25.0/maps/maps-web.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+    <style>
+      html,
+      body,
+      #map {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        width: 100%;
+      }
+
+      .settings-btn {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: white;
+        border: none;
+        padding: 10px;
+        font-size: 18px;
+        cursor: pointer;
+        border-radius: 4px;
+        z-index: 2;
+      }
+
+      .settings-panel {
+        display: none;
+        position: absolute;
+        top: 50px;
+        left: 10px;
+        background: white;
+        padding: 12px;
+        border-radius: 6px;
+        font-family: sans-serif;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+        z-index: 2;
+      }
+
+      .settings-panel label {
+        display: block;
+        margin-bottom: 8px;
+        cursor: pointer;
+      }
+
+      .center-btn {
+        position: absolute;
+        bottom: 80px;
+        right: 10px;
+        background: white;
+        border: none;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        z-index: 2;
+        display: none; /* Domyślnie ukryty */
+        transition: opacity 0.3s ease-in-out;
+        opacity: 0;
+      }
+
+      .center-btn.visible {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        opacity: 1;
+      }
+
+      .message-box {
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: white;
+        padding: 10px 15px;
+        border-radius: 4px;
+        font-family: sans-serif;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+        z-index: 3;
+        display: flex;
+        align-items: center;
+      }
+
+      .message-box-content {
+        flex-grow: 1;
+      }
+
+      .message-box-close {
+        margin-left: 10px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+
+      .user-direction-marker {
+        width: 40px;
+        height: 40px;
+        background-image: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="%23ff8000"><path d="M256 0L32 445.7 256 352l224 93.7z"/></svg>');
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        transform-origin: center center;
+      }
+
+      .user-accuracy-circle {
+        background-color: rgba(0, 122, 255, 0.1);
+        border: 1px solid rgba(0, 122, 255, 0.3);
+        border-radius: 50%;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="map"></div>
+
+    <!-- Przycisk ustawień -->
+    <button class="settings-btn"><i class="fas fa-cog"></i></button>
+
+    <!-- Panel ustawień -->
+    <div class="settings-panel" id="settingsPanel">
+      <label>
+        <input type="checkbox" id="flow-toggle" />
+        Pokaż ruch drogowy
+      </label>
+      <label>
+        <input id="incidents-toggle" type="checkbox" />
+        Pokaż incydenty drogowe
+      </label>
+      <label>
+        <input id="rotation-toggle" type="checkbox" checked />
+        Obracaj mapę zgodnie z kierunkiem
+      </label>
+    </div>
+
+    <!-- Przycisk centrowania -->
+    <button class="center-btn" id="centerButton"><i class="fas fa-location-arrow"></i></button>
+
+    <!-- Komunikat o błędzie -->
+    <div class="message-box" id="messageBox" hidden>
+      <div class="message-box-content" id="messageBoxContent"></div>
+      <span class="message-box-close" id="messageBoxClose">&times;</span>
+    </div>
+
+    <script>
+      const apiKey = "5sWFmhOgtZG9Aaj19W6LgDwQrwiCFTOG";
+
+      const map = tt.map({
+        key: apiKey,
+        container: "map",
+        center: [21.0122, 52.2297], // Warszawa
+        zoom: 14,
+      });
+
+      map.addControl(new tt.NavigationControl());
+      map.addControl(new tt.FullscreenControl());
+
+      // Elementy UI
+      const settingsBtn = document.querySelector(".settings-btn");
+      const settingsPanel = document.getElementById("settingsPanel");
+      const trafficToggle = document.getElementById("flow-toggle");
+      const incidentsCheckbox = document.getElementById("incidents-toggle");
+      const rotationToggle = document.getElementById("rotation-toggle");
+      const centerButton = document.getElementById("centerButton");
+      const messageBox = document.getElementById("messageBox");
+      const messageBoxContent = document.getElementById("messageBoxContent");
+      const messageBoxClose = document.getElementById("messageBoxClose");
+
+      // Komunikaty błędów
+      const messages = {
+        permissionDenied: "Dostęp do lokalizacji został zablokowany. Zmień ustawienia przeglądarki, aby umożliwić geolokalizację.",
+        notAvailable: "Nie można określić Twojej lokalizacji. Upewnij się, że usługi lokalizacji są włączone."
+      };
+
+      // Zmienne stanu
+      let trafficIncidentsLayer = null;
+      let userLocationMarker = null;
+      let userAccuracyCircle = null;
+      let userWatchId = null;
+      let userHeading = 0;
+      let lastPosition = null;
+      let lastPositionTimestamp = 0;
+      let headingTimeout = null;
+      let mapRotationEnabled = true;
+      let autoCenteringEnabled = true;
+
+      // Obsługa ruchu drogowego
+      trafficToggle.addEventListener("change", () => {
+        if (trafficToggle.checked) {
+          map.showTrafficFlow();
+        } else {
+          map.hideTrafficFlow();
+        }
+      });
+
+      // Obsługa panelu ustawień
+      settingsBtn.addEventListener("click", () => {
+        settingsPanel.style.display =
+          settingsPanel.style.display === "block" ? "none" : "block";
+      });
+
+      // Obsługa przełącznika rotacji
+      rotationToggle.addEventListener("change", () => {
+        mapRotationEnabled = rotationToggle.checked;
+        
+        // Jeśli wyłączono rotację, zresetuj orientację mapy
+        if (!mapRotationEnabled && isMapCentered) {
+          map.easeTo({
+            bearing: 0,
+            pitch: 0,
+            duration: 500
+          });
+        }
+      });
+
+      // Obsługa incydentów drogowych
+      incidentsCheckbox.addEventListener("change", () => {
+        if (incidentsCheckbox.checked) {
+          if (!trafficIncidentsLayer) {
+            // Tworzenie warstwy incydentów drogowych
+            trafficIncidentsLayer = new tt.VectorTileLayer({
+              key: apiKey,
+              style: "tomtom://vector/incident",
+              refresh: 30000, // Odświeżanie co 30 sekund
+            });
+          }
+          map.addLayer(trafficIncidentsLayer);
+        } else if (trafficIncidentsLayer) {
+          map.removeLayer(trafficIncidentsLayer);
+        }
+      });
+
+      // Obliczanie kursu na podstawie dwóch pozycji GPS
+      function calculateHeading(lat1, lon1, lat2, lon2) {
+        const toRad = (value) => (value * Math.PI) / 180;
+        const toDeg = (value) => (value * 180) / Math.PI;
+        
+        const dLon = toRad(lon2 - lon1);
+        const y = Math.sin(dLon) * Math.cos(toRad(lat2));
+        const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
+                Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
+        
+        let bearing = toDeg(Math.atan2(y, x));
+        bearing = (bearing + 360) % 360;
+        
+        return bearing;
+      }
+
+      // Obsługa geolokalizacji
+      function startUserLocationTracking() {
+        if (!navigator.geolocation) {
+          displayErrorMessage("Twoja przeglądarka nie obsługuje geolokalizacji.");
+          return;
+        }
+
+        // Opcje geolokalizacji
+        const options = {
+          enableHighAccuracy: true,
+          maximumAge: 0,
+          timeout: 10000
+        };
+
+        // Rozpocznij śledzenie lokalizacji
+        userWatchId = navigator.geolocation.watchPosition(
+          updateUserLocation,
+          handleLocationError,
+          options
+        );
+
+        // Sprawdź uprawnienia
+        handlePermissionDenied();
+      }
+
+      // Aktualizacja lokalizacji użytkownika
+      function updateUserLocation(position) {
+        const { latitude, longitude, accuracy, heading } = position.coords;
+        const userLocation = [longitude, latitude];
+        const currentTime = Date.now();
+
+        // Utwórz lub aktualizuj marker lokalizacji
+        if (!userLocationMarker) {
+          // Tworzenie elementu HTML dla markera kierunku
+          const el = document.createElement('div');
+          el.className = 'user-direction-marker';
+          
+          // Tworzenie markera
+          userLocationMarker = new tt.Marker({
+            element: el,
+            anchor: 'center',
+            offset: [0, 0] // Centruj marker dokładnie na pozycji
+          })
+            .setLngLat(userLocation)
+            .addTo(map);
+
+          // Po pierwszym pobraniu lokalizacji, wycentruj mapę
+          map.flyTo({
+            center: userLocation,
+            zoom: 17,
+            duration: 1000
+          });
+          
+          isMapCentered = true;
+        } else {
+          userLocationMarker.setLngLat(userLocation);
+        }
+
+        // Aktualizuj kierunek na podstawie heading z API
+        // lub oblicz na podstawie ruchu, jeśli heading nie jest dostępny
+        if (heading !== null && heading !== undefined) {
+          // Użyj bezpośrednio heading z API GPS
+          userHeading = heading;
+        } else if (lastPosition && (currentTime - lastPositionTimestamp) > 500) {
+          // Oblicz kierunek na podstawie ostatniej pozycji, jeśli minęło przynajmniej 0.5s
+          // i użytkownik przemieścił się wystarczająco daleko
+          const minDistance = 3; // Minimalna odległość w metrach
+          
+          // Oblicz przybliżoną odległość między punktami
+          const R = 6371e3; // Promień ziemi w metrach
+          const lat1 = lastPosition[1] * Math.PI / 180;
+          const lat2 = latitude * Math.PI / 180;
+          const dLat = (latitude - lastPosition[1]) * Math.PI / 180;
+          const dLon = (longitude - lastPosition[0]) * Math.PI / 180;
+          
+          const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.cos(lat1) * Math.cos(lat2) *
+                    Math.sin(dLon/2) * Math.sin(dLon/2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+          const distance = R * c;
+          
+          if (distance > minDistance) {
+            // Oblicz kierunek ruchu
+            const calculatedHeading = calculateHeading(
+              lastPosition[1], lastPosition[0], 
+              latitude, longitude
+            );
+            
+            // Zastosuj wygładzanie kierunku
+            userHeading = userHeading !== null ? 
+              userHeading * 0.7 + calculatedHeading * 0.3 : calculatedHeading;
+              
+            // Zresetuj timer wygasania kierunku
+            clearTimeout(headingTimeout);
+            headingTimeout = setTimeout(() => {
+              // Po zakończeniu ruchu nie resetujemy kierunku, aby zachować orientację mapy
+              updateRotation();
+            }, 10000);
+          }
+        }
+
+        // Jeśli nie mamy żadnego heading, użyj domyślnego (0 - północ)
+        if (userHeading === null) {
+          userHeading = 0;
+        }
+
+        // Zapisz aktualną pozycję do porównania przy następnym odczycie
+        lastPosition = [longitude, latitude];
+        lastPositionTimestamp = currentTime;
+
+        // Aktualizuj kierunek strzałki i mapy
+        updateRotation();
+
+        // Utwórz lub aktualizuj okrąg dokładności
+        if (!userAccuracyCircle) {
+          const el = document.createElement('div');
+          el.className = 'user-accuracy-circle';
+          
+          userAccuracyCircle = new tt.Marker({
+            element: el,
+            anchor: 'center'
+          })
+            .setLngLat(userLocation)
+            .addTo(map);
+        } else {
+          userAccuracyCircle.setLngLat(userLocation);
+        }
+
+        // Aktualizuj wielkość okręgu dokładności (promień w metrach)
+        if (userAccuracyCircle.getElement()) {
+          // Konwersja metrów na piksele na danym zoomie
+          const pixelSize = accuracy / 0.075 / Math.pow(2, map.getZoom());
+          userAccuracyCircle.getElement().style.width = `${pixelSize}px`;
+          userAccuracyCircle.getElement().style.height = `${pixelSize}px`;
+        }
+
+        // Wyśrodkuj i obróć mapę w stylu Yanosik, jeśli opcja jest włączona
+        if (isMapCentered && mapRotationEnabled) {
+          // W trybie Yanosik ustawiamy mapę tak, aby kierunek ruchu był zawsze na górze (bearing = heading)
+          map.easeTo({
+            center: userLocation,
+            bearing: userHeading,
+            duration: 300
+          });
+        } else if (isMapCentered) {
+          // Jeśli rotacja wyłączona, tylko centruj
+          map.easeTo({
+            center: userLocation,
+            duration: 300
+          });
+        }
+      }
+
+      // Aktualizacja rotacji strzałki i mapy
+      function updateRotation() {
+        // Aktualizacja rotacji strzałki
+        if (userLocationMarker && userLocationMarker.getElement()) {
+          if (userHeading !== null) {
+            userLocationMarker.getElement().style.transform = `rotate(${userHeading}deg)`;
+          } else {
+            // Domyślna rotacja, gdy nie ma kierunku
+            userLocationMarker.getElement().style.transform = 'rotate(0deg)';
+          }
+        }
+      }
+
+      // Obsługa błędów geolokalizacji
+      function handleLocationError(error) {
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            displayErrorMessage(messages.permissionDenied);
+            break;
+          case error.POSITION_UNAVAILABLE:
+          case error.TIMEOUT:
+            displayErrorMessage(messages.notAvailable);
+            break;
+        }
+      }
+
+      // Obsługa przypadku, gdy uprawnienia do geolokalizacji są już zablokowane
+      function handlePermissionDenied() {
+        if ('permissions' in navigator) {
+          navigator.permissions.query({name: 'geolocation'})
+            .then(function(result) {
+              if (result.state === 'denied') {
+                displayErrorMessage(messages.permissionDenied);
+              }
+            });
+        }
+      }
+
+      // Wyświetlanie komunikatu o błędzie
+      function displayErrorMessage(message) {
+        messageBoxContent.textContent = message;
+        messageBox.removeAttribute('hidden');
+      }
+
+      // Zamykanie komunikatu o błędzie
+      messageBoxClose.addEventListener('click', function() {
+        messageBox.setAttribute('hidden', true);
+      });
+
+      // Obsługa przycisku centrowania
+      centerButton.addEventListener('click', function() {
+        // Jeśli mamy lokalizację użytkownika
+        if (userLocationMarker) {
+          const userLocation = userLocationMarker.getLngLat();
+          const bearing = mapRotationEnabled && userHeading !== null ? userHeading : 0;
+          
+          map.flyTo({
+            center: userLocation,
+            zoom: 17,
+            bearing: bearing,
+            duration: 700
+          });
+          
+          isMapCentered = true;
+          updateCenterButtonVisibility();
+        } else {
+          // Jeśli nie mamy jeszcze lokalizacji, spróbuj ją uzyskać
+          startUserLocationTracking();
+        }
+      });
+
+      // Aktualizacja widoczności przycisku centrowania
+      function updateCenterButtonVisibility() {
+        if (isMapCentered) {
+          centerButton.classList.remove('visible');
+        } else {
+          centerButton.classList.add('visible');
+        }
+      }
+
+      // Obsługa zmiany widoku mapy
+      map.on('move', function(e) {
+        // Jeśli mapa jest poruszana przez użytkownika, wyłącz centrowanie
+        if (e.originalEvent && userLocationMarker) {
+          isMapCentered = false;
+          updateCenterButtonVisibility();
+        }
+      });
+
+      // Obsługa zmiany zooma mapy
+      map.on('zoom', function() {
+        // Aktualizuj rozmiar okręgu dokładności po zmianie zooma
+        if (userAccuracyCircle && userLocationMarker) {
+          const position = userLocationMarker.getLngLat();
+          userAccuracyCircle.setLngLat(position);
+          
+          // Aktualizuj rozmiar kręgu dokładności
+          if (userAccuracyCircle.getElement() && lastPosition) {
+            const accuracy = 10; // Domyślna wartość, jeśli nie mamy aktualnej
+            const pixelSize = accuracy / 0.075 / Math.pow(2, map.getZoom());
+            userAccuracyCircle.getElement().style.width = `${pixelSize}px`;
+            userAccuracyCircle.getElement().style.height = `${pixelSize}px`;
+          }
+        }
+      });
+
+      // Inicjalizacja śledzenia lokalizacji przy ładowaniu strony
+      map.on('load', function() {
+        startUserLocationTracking();
+        updateCenterButtonVisibility();
+      });
+    </script>
+  </body>
+</html>
