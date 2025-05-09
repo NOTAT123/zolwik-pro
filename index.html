@@ -690,7 +690,10 @@
           window.destinationMarker.remove();
         }
         
-        window.destinationMarker = new tt.Marker()
+        window.destinationMarker = new tt.Marker({
+          rotationAlignment: 'viewport',
+          pitchAlignment: 'viewport'
+        })
           .setLngLat([destination.lng, destination.lat])
           .addTo(map);
 
@@ -922,6 +925,11 @@
           return;
         }
 
+        // Obsługa zdarzenia zoom - ważna dla stabilności markerów
+        map.on('zoom', handleZoom);
+        map.on('move', handleMapMove);
+        map.on('moveend', handleMapMoveEnd);
+
         // Opcje geolokalizacji z maksymalną dokładnością
         const options = {
           enableHighAccuracy: true,
@@ -939,6 +947,46 @@
         // Domyślnie włączamy obrót mapy
         mapRotationEnabled = true;
         rotationToggle.checked = true;
+      }
+
+      // Obsługa zmiany zooma mapy
+      function handleZoom() {
+        // Stabilizacja markerów przy zmianie zooma
+        if (userLocationMarker && lastPosition) {
+          userLocationMarker.setLngLat([lastPosition[0], lastPosition[1]]);
+        }
+        
+        if (userAccuracyCircle && lastPosition) {
+          userAccuracyCircle.setLngLat([lastPosition[0], lastPosition[1]]);
+          
+          // Aktualizuj rozmiar kręgu dokładności
+          updateAccuracyCircleSize();
+        }
+
+        // Aktualizacja zakresu mapy jeśli potrzebna
+        updateMapViewport();
+      }
+
+      // Obsługa ruchu mapy
+      function handleMapMove(e) {
+        if (e.originalEvent) {
+          lastMapMoveTime = Date.now();
+          userMovedMap = true;
+          isMapCentered = false;
+          updateCenterButtonVisibility();
+        }
+      }
+
+      // Obsługa zakończenia ruchu mapy
+      function handleMapMoveEnd() {
+        // Stabilizacja pozycji markerów po zakończeniu ruchu mapy
+        if (userLocationMarker && lastPosition) {
+          userLocationMarker.setLngLat([lastPosition[0], lastPosition[1]]);
+        }
+        
+        if (userAccuracyCircle && lastPosition) {
+          userAccuracyCircle.setLngLat([lastPosition[0], lastPosition[1]]);
+        }
       }
 
       // Płynne aktualizowanie pozycji markera
@@ -1009,9 +1057,51 @@
         }
       }
 
+      // Aktualizacja widoku mapy
+      function updateMapViewport() {
+        // Jeśli mamy trasę, upewnij się, że jest widoczna
+        if (window.routeLayer && currentRoute) {
+          // Sprawdź, czy jesteśmy w małym zoomie (poniżej 10)
+          if (map.getZoom() < 10) {
+            // Dostosuj widok, aby pokazać całą trasę
+            const bounds = new tt.LngLatBounds();
+            
+            // Dodaj punkty trasy do granic
+            if (currentRoute.legs && currentRoute.legs[0] && currentRoute.legs[0].points) {
+              currentRoute.legs[0].points.forEach(point => {
+                bounds.extend([point.longitude, point.latitude]);
+              });
+            }
+            
+            // Dodaj pozycję użytkownika
+            if (lastPosition) {
+              bounds.extend(lastPosition);
+            }
+            
+            // Ustaw bounds z odpowiednim paddingiem
+            map.fitBounds(bounds, { padding: 50 });
+          }
+        }
+      }
+
+      // Aktualizacja rozmiaru okręgu dokładności
+      function updateAccuracyCircleSize() {
+        if (userAccuracyCircle && userAccuracyCircle.getElement()) {
+          // Użyj zapisanej dokładności lub domyślnej wartości
+          const accuracy = window.lastAccuracy || 10;
+          const pixelSize = accuracy / 0.075 / Math.pow(2, map.getZoom());
+          
+          userAccuracyCircle.getElement().style.width = `${pixelSize}px`;
+          userAccuracyCircle.getElement().style.height = `${pixelSize}px`;
+        }
+      }
+
       // Aktualizacja lokalizacji użytkownika
       function updateUserLocation(position) {
         const { latitude, longitude, accuracy, heading } = position.coords;
+        
+        // Zapisz dokładność do późniejszego użycia
+        window.lastAccuracy = accuracy;
         
         if (accuracy > 100) {
           return;
@@ -1033,19 +1123,19 @@
           const svgBlob = new Blob([svgIcon], {type: 'image/svg+xml'});
           const url = URL.createObjectURL(svgBlob);
           
+          // Utwórz marker z odpowiednimi ustawieniami
+          const el = document.createElement('div');
+          el.style.zIndex = "1000";
+          el.innerHTML = `<img src="${url}" style="width: 40px; height: 40px; transition: transform 0.3s ease-out;">`;
+          
           userLocationMarker = new tt.Marker({
-            element: document.createElement('div'),
+            element: el,
             anchor: 'center',
-            rotationAlignment: 'map',
-            pitchAlignment: 'map'
+            rotationAlignment: 'viewport',
+            pitchAlignment: 'viewport'
           })
             .setLngLat(userLocation)
             .addTo(map);
-
-          // Ustawienie ikony
-          const markerElement = userLocationMarker.getElement();
-          markerElement.innerHTML = `<img src="${url}" style="width: 40px; height: 40px;">`;
-          markerElement.style.zIndex = "1000";
 
           // Po pierwszym pobraniu lokalizacji, wycentruj mapę
           map.flyTo({
@@ -1063,7 +1153,7 @@
           currentAnimatedPosition = { lng: longitude, lat: latitude };
           startPositionAnimation();
         } else {
-          // Ustaw nową docelową pozycję dla animacji
+          // Ustaw docelową pozycję dla animacji
           targetPosition = { lng: longitude, lat: latitude };
           lastUpdateTime = currentTime;
         }
@@ -1267,23 +1357,6 @@
         }
       });
 
-      // Obsługa zmiany zooma mapy
-      map.on('zoom', function() {
-        // Aktualizuj rozmiar okręgu dokładności po zmianie zooma
-        if (userAccuracyCircle && userLocationMarker) {
-          const position = userLocationMarker.getLngLat();
-          userAccuracyCircle.setLngLat(position);
-          
-          // Aktualizuj rozmiar kręgu dokładności
-          if (userAccuracyCircle.getElement() && lastPosition) {
-            const accuracy = 10; // Domyślna wartość, jeśli nie mamy aktualnej
-            const pixelSize = accuracy / 0.075 / Math.pow(2, map.getZoom());
-            userAccuracyCircle.getElement().style.width = `${pixelSize}px`;
-            userAccuracyCircle.getElement().style.height = `${pixelSize}px`;
-          }
-        }
-      });
-
       // Inicjalizacja okręgu dokładności
       function updateAccuracyCircle(userLocation, accuracy) {
         if (!userAccuracyCircle) {
@@ -1292,7 +1365,9 @@
           
           userAccuracyCircle = new tt.Marker({
             element: el,
-            anchor: 'center'
+            anchor: 'center',
+            rotationAlignment: 'viewport',
+            pitchAlignment: 'viewport'
           })
             .setLngLat(userLocation)
             .addTo(map);
@@ -1306,6 +1381,9 @@
           userAccuracyCircle.getElement().style.height = `${pixelSize}px`;
         }
       }
+
+      // Usuń stary handler zooma (zastąpiony przez handleZoom)
+      map.off('zoom');
     </script>
   </body>
 </html>
