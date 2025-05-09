@@ -951,20 +951,12 @@
 
       // Obsługa zmiany zooma mapy
       function handleZoom() {
-        // Stabilizacja markerów przy zmianie zooma
-        if (userLocationMarker && lastPosition) {
-          userLocationMarker.setLngLat([lastPosition[0], lastPosition[1]]);
+        // Tylko aktualizujemy rozmiar okręgu dokładności
+        if (userAccuracyCircle && userAccuracyCircle.getElement() && window.lastAccuracy) {
+          const pixelSize = window.lastAccuracy / 0.075 / Math.pow(2, map.getZoom());
+          userAccuracyCircle.getElement().style.width = `${pixelSize}px`;
+          userAccuracyCircle.getElement().style.height = `${pixelSize}px`;
         }
-        
-        if (userAccuracyCircle && lastPosition) {
-          userAccuracyCircle.setLngLat([lastPosition[0], lastPosition[1]]);
-          
-          // Aktualizuj rozmiar kręgu dokładności
-          updateAccuracyCircleSize();
-        }
-
-        // Aktualizacja zakresu mapy jeśli potrzebna
-        updateMapViewport();
       }
 
       // Obsługa ruchu mapy
@@ -1036,7 +1028,11 @@
         
         // Kontynuuj animację, jeśli nadal trwa
         if (t < 1) {
-          currentAnimatedPosition = { lng: newLng, lat: newLat };
+          currentAnimatedPosition = targetPosition;
+          targetPosition = null;
+          lastUpdateTime = now;
+          
+          // Kontynuuj nasłuchiwanie
           animationFrameId = requestAnimationFrame(animatePositionUpdate);
         } else {
           // Zakończ animację
@@ -1084,18 +1080,6 @@
         }
       }
 
-      // Aktualizacja rozmiaru okręgu dokładności
-      function updateAccuracyCircleSize() {
-        if (userAccuracyCircle && userAccuracyCircle.getElement()) {
-          // Użyj zapisanej dokładności lub domyślnej wartości
-          const accuracy = window.lastAccuracy || 10;
-          const pixelSize = accuracy / 0.075 / Math.pow(2, map.getZoom());
-          
-          userAccuracyCircle.getElement().style.width = `${pixelSize}px`;
-          userAccuracyCircle.getElement().style.height = `${pixelSize}px`;
-        }
-      }
-
       // Aktualizacja lokalizacji użytkownika
       function updateUserLocation(position) {
         const { latitude, longitude, accuracy, heading } = position.coords;
@@ -1112,28 +1096,16 @@
 
         // Utwórz lub aktualizuj marker lokalizacji
         if (!userLocationMarker) {
-          // Tworzenie ikony strzałki jako SVG
-          const svgIcon = `
-            <svg width="40" height="40" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-              <path d="M256 0L32 445.7 256 352l224 93.7z" fill="#ff8000"/>
-            </svg>
-          `;
-          
-          // Konwersja SVG na URL
-          const svgBlob = new Blob([svgIcon], {type: 'image/svg+xml'});
-          const url = URL.createObjectURL(svgBlob);
-          
-          // Utwórz marker z odpowiednimi ustawieniami
+          // Tworzenie strzałki jako element DOM
           const el = document.createElement('div');
-          el.style.zIndex = "1000";
-          el.innerHTML = `<img src="${url}" style="width: 40px; height: 40px; transition: transform 0.3s ease-out;">`;
+          el.style.width = '30px';
+          el.style.height = '30px';
+          el.style.backgroundImage = "url('https://cdn3.iconfinder.com/data/icons/arrows-set-3/100/Arrow23-512.png')";
+          el.style.backgroundSize = 'contain';
+          el.style.backgroundRepeat = 'no-repeat';
           
-          userLocationMarker = new tt.Marker({
-            element: el,
-            anchor: 'center',
-            rotationAlignment: 'viewport',
-            pitchAlignment: 'viewport'
-          })
+          // Utwórz marker TomTom
+          userLocationMarker = new tt.Marker({element: el})
             .setLngLat(userLocation)
             .addTo(map);
 
@@ -1148,72 +1120,21 @@
           isMapCentered = true;
           userMovedMap = false;
           updateCenterButtonVisibility();
-          
-          // Uruchom animację
-          currentAnimatedPosition = { lng: longitude, lat: latitude };
-          startPositionAnimation();
         } else {
-          // Ustaw docelową pozycję dla animacji
-          targetPosition = { lng: longitude, lat: latitude };
-          lastUpdateTime = currentTime;
+          // Aktualizuj pozycję markera
+          userLocationMarker.setLngLat(userLocation);
         }
 
-        // Aktualizacja kierunku
+        // Aktualizacja kierunku - obracamy mapę, nie marker
         if (heading !== null && heading !== undefined) {
-          const headingDiff = Math.abs(heading - userHeading);
-          if (headingDiff > 1) {
-            // Płynniejsza zmiana kierunku
-            const timeDiff = currentTime - lastHeadingUpdateTime;
-            if (timeDiff > 0) {
-              headingChangeRate = headingDiff / timeDiff;
-            }
-            
-            userHeading = heading;
-            lastHeadingUpdateTime = currentTime;
-            updateRotation();
-          }
-        } else if (lastPosition && (currentTime - lastPositionTimestamp) > 100) {
-          const minDistance = 1;
-          
-          const R = 6371e3;
-          const lat1 = lastPosition[1] * Math.PI / 180;
-          const lat2 = latitude * Math.PI / 180;
-          const dLat = (latitude - lastPosition[1]) * Math.PI / 180;
-          const dLon = (longitude - lastPosition[0]) * Math.PI / 180;
-          
-          const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                    Math.cos(lat1) * Math.cos(lat2) *
-                    Math.sin(dLon/2) * Math.sin(dLon/2);
-          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-          const distance = R * c;
-          
-          if (distance > minDistance) {
+          userHeading = heading;
+        } else if (lastPosition && (currentTime - lastPositionTimestamp) > 200) {
+          if (calculateDistance(lastPosition[1], lastPosition[0], latitude, longitude) > 2) {
             const calculatedHeading = calculateHeading(
               lastPosition[1], lastPosition[0], 
               latitude, longitude
             );
-            
-            // Płynniejsza zmiana kierunku z adaptacyjnym wygładzaniem
-            // Im szybsza zmiana, tym mniejsze wygładzanie
-            const timeDiff = currentTime - lastHeadingUpdateTime;
-            const changeSpeed = timeDiff > 0 ? Math.abs(calculatedHeading - userHeading) / timeDiff : 0;
-            
-            // Dynamiczne dostosowanie współczynnika wygładzania
-            // Przy szybkich zmianach - mniej wygładzania (do 0.5)
-            // Przy wolnych zmianach - więcej wygładzania (do 0.05)
-            const smoothingFactor = Math.min(0.5, Math.max(0.05, changeSpeed / 10));
-            
-            userHeading = userHeading !== null ? 
-              userHeading * (1 - smoothingFactor) + calculatedHeading * smoothingFactor : 
-              calculatedHeading;
-            
-            lastHeadingUpdateTime = currentTime;
-            updateRotation();
-            
-            clearTimeout(headingTimeout);
-            headingTimeout = setTimeout(() => {
-              updateRotation();
-            }, 5000);
+            userHeading = calculatedHeading;
           }
         }
 
@@ -1224,40 +1145,42 @@
         // Aktualizuj okrąg dokładności
         updateAccuracyCircle(userLocation, accuracy);
 
-        // Centrowanie mapy - płynniejsze
-        if (isMapCentered && !userMovedMap && currentTime - lastMapMoveTime > 500) {
-          // Używamy animacji zamiast easeTo
-          if (mapRotationEnabled) {
-            // Aktualizacja pozycji jest obsługiwana przez animatePositionUpdate
-            // Nie potrzebujemy wywoływać map.easeTo
-          } else {
-            map.easeTo({
-              center: userLocation,
-              bearing: 0,
-              duration: 300,
-              easing: (t) => t * (2 - t) * (3 - 2 * t) // Płynniejsza funkcja wygładzająca
-            });
-          }
+        // Aktualizuj obrót mapy aby strzałka pokazywała w górę
+        if (isMapCentered && !userMovedMap && mapRotationEnabled && userHeading !== null) {
+          map.easeTo({
+            center: userLocation,
+            bearing: userHeading,
+            duration: 300
+          });
         }
       }
 
-      // Aktualizacja rotacji strzałki i mapy - teraz płynniejsza
-      function updateRotation() {
-        if (userLocationMarker && userLocationMarker.getElement()) {
-          if (userHeading !== null) {
-            // Rotacja samej strzałki - z płynnym przejściem CSS
-            const markerElement = userLocationMarker.getElement().querySelector('img');
-            if (markerElement) {
-              // Dodaj płynne przejście CSS, jeśli jeszcze nie ma
-              if (!markerElement.style.transition) {
-                markerElement.style.transition = 'transform 0.3s ease-out';
-              }
-              markerElement.style.transform = `rotate(${userHeading}deg)`;
-            }
-          }
+      // Aktualizacja okręgu dokładności
+      function updateAccuracyCircle(userLocation, accuracy) {
+        if (!userAccuracyCircle) {
+          // Utwórz element DOM dla okręgu dokładności
+          const el = document.createElement('div');
+          el.className = 'user-accuracy-circle';
+          
+          userAccuracyCircle = new tt.Marker({
+            element: el,
+            anchor: 'center'
+          })
+            .setLngLat(userLocation)
+            .addTo(map);
+          
+          // Upewnij się, że okrąg jest pod markerem
+          userAccuracyCircle.getElement().style.zIndex = "90";
+        } else {
+          userAccuracyCircle.setLngLat(userLocation);
         }
 
-        // Rotacja mapy jest obsługiwana przez animatePositionUpdate
+        // Ustaw rozmiar okręgu dokładności
+        if (userAccuracyCircle.getElement()) {
+          const pixelSize = accuracy / 0.075 / Math.pow(2, map.getZoom());
+          userAccuracyCircle.getElement().style.width = `${pixelSize}px`;
+          userAccuracyCircle.getElement().style.height = `${pixelSize}px`;
+        }
       }
 
       // Obsługa błędów geolokalizacji
@@ -1356,34 +1279,6 @@
           updateCenterButtonVisibility();
         }
       });
-
-      // Inicjalizacja okręgu dokładności
-      function updateAccuracyCircle(userLocation, accuracy) {
-        if (!userAccuracyCircle) {
-          const el = document.createElement('div');
-          el.className = 'user-accuracy-circle';
-          
-          userAccuracyCircle = new tt.Marker({
-            element: el,
-            anchor: 'center',
-            rotationAlignment: 'viewport',
-            pitchAlignment: 'viewport'
-          })
-            .setLngLat(userLocation)
-            .addTo(map);
-        } else {
-          userAccuracyCircle.setLngLat(userLocation);
-        }
-
-        if (userAccuracyCircle.getElement()) {
-          const pixelSize = accuracy / 0.075 / Math.pow(2, map.getZoom());
-          userAccuracyCircle.getElement().style.width = `${pixelSize}px`;
-          userAccuracyCircle.getElement().style.height = `${pixelSize}px`;
-        }
-      }
-
-      // Usuń stary handler zooma (zastąpiony przez handleZoom)
-      map.off('zoom');
     </script>
   </body>
 </html>
