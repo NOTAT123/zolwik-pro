@@ -437,6 +437,14 @@
       let lastMapMoveTime = 0;
       let userMovedMap = false;
       let buildings3DEnabled = false;
+      
+      // Zmienne dla płynnego ruchu
+      let animationFrameId = null;
+      let targetPosition = null;
+      let currentAnimatedPosition = null;
+      let lastHeadingUpdateTime = 0;
+      let headingChangeRate = 0;
+      let lastUpdateTime = 0;
 
       // Zmienne dla nawigacji
       let currentRoute = null;
@@ -492,6 +500,12 @@
           map.easeTo({
             bearing: 0,
             pitch: 0,
+            duration: 500
+          });
+        } else if (mapRotationEnabled && isMapCentered && userHeading !== null) {
+          // Włączono rotację i znamy kierunek - obróć mapę
+          map.easeTo({
+            bearing: userHeading,
             duration: 500
           });
         }
@@ -912,11 +926,7 @@
         const options = {
           enableHighAccuracy: true,
           maximumAge: 0,
-          timeout: 10000,
-          // Dodatkowe opcje dla maksymalnej dokładności
-          desiredAccuracy: 1,
-          desiredPositionAccuracy: 1,
-          desiredHeadingAccuracy: 1
+          timeout: 10000
         };
 
         // Rozpocznij śledzenie lokalizacji
@@ -925,13 +935,85 @@
           handleLocationError,
           options
         );
+        
+        // Domyślnie włączamy obrót mapy
+        mapRotationEnabled = true;
+        rotationToggle.checked = true;
+      }
+
+      // Płynne aktualizowanie pozycji markera
+      function animatePositionUpdate() {
+        if (!targetPosition || !userLocationMarker) {
+          animationFrameId = requestAnimationFrame(animatePositionUpdate);
+          return;
+        }
+        
+        const now = Date.now();
+        const elapsed = now - lastUpdateTime;
+        
+        if (!currentAnimatedPosition) {
+          currentAnimatedPosition = userLocationMarker.getLngLat();
+        }
+        
+        // Płynna interpolacja pozycji (easing)
+        const t = Math.min(1, elapsed / 300); // 300ms dla płynnego przejścia
+        const easingT = t * (2 - t); // Funkcja wygładzająca
+        
+        const newLng = currentAnimatedPosition.lng + (targetPosition.lng - currentAnimatedPosition.lng) * easingT;
+        const newLat = currentAnimatedPosition.lat + (targetPosition.lat - currentAnimatedPosition.lat) * easingT;
+        
+        // Aktualizacja markera
+        userLocationMarker.setLngLat([newLng, newLat]);
+        
+        // Aktualizacja okręgu dokładności
+        if (userAccuracyCircle) {
+          userAccuracyCircle.setLngLat([newLng, newLat]);
+        }
+        
+        // Płynna aktualizacja obrotu
+        if (userHeading !== null && mapRotationEnabled && isMapCentered && !userMovedMap) {
+          const currentBearing = map.getBearing();
+          const targetBearing = userHeading;
+          
+          // Oblicz różnicę kątów (uwzględniając przekroczenie 360 stopni)
+          let bearingDiff = targetBearing - currentBearing;
+          if (bearingDiff > 180) bearingDiff -= 360;
+          if (bearingDiff < -180) bearingDiff += 360;
+          
+          // Płynne przejście do docelowego kąta
+          const newBearing = currentBearing + bearingDiff * easingT;
+          
+          map.setBearing(newBearing);
+        }
+        
+        // Kontynuuj animację, jeśli nadal trwa
+        if (t < 1) {
+          currentAnimatedPosition = { lng: newLng, lat: newLat };
+          animationFrameId = requestAnimationFrame(animatePositionUpdate);
+        } else {
+          // Zakończ animację
+          currentAnimatedPosition = targetPosition;
+          targetPosition = null;
+          lastUpdateTime = now;
+          
+          // Kontynuuj nasłuchiwanie
+          animationFrameId = requestAnimationFrame(animatePositionUpdate);
+        }
+      }
+
+      // Rozpocznij animację
+      function startPositionAnimation() {
+        if (!animationFrameId) {
+          lastUpdateTime = Date.now();
+          animationFrameId = requestAnimationFrame(animatePositionUpdate);
+        }
       }
 
       // Aktualizacja lokalizacji użytkownika
       function updateUserLocation(position) {
         const { latitude, longitude, accuracy, heading } = position.coords;
         
-        if (accuracy > 10) {
+        if (accuracy > 100) {
           return;
         }
 
@@ -963,26 +1045,41 @@
           // Ustawienie ikony
           const markerElement = userLocationMarker.getElement();
           markerElement.innerHTML = `<img src="${url}" style="width: 40px; height: 40px;">`;
+          markerElement.style.zIndex = "1000";
 
           // Po pierwszym pobraniu lokalizacji, wycentruj mapę
           map.flyTo({
             center: userLocation,
             zoom: 19,
-            duration: 1000
+            duration: 1000,
+            bearing: heading || 0
           });
           
           isMapCentered = true;
           userMovedMap = false;
           updateCenterButtonVisibility();
+          
+          // Uruchom animację
+          currentAnimatedPosition = { lng: longitude, lat: latitude };
+          startPositionAnimation();
         } else {
-          userLocationMarker.setLngLat(userLocation);
+          // Ustaw nową docelową pozycję dla animacji
+          targetPosition = { lng: longitude, lat: latitude };
+          lastUpdateTime = currentTime;
         }
 
         // Aktualizacja kierunku
         if (heading !== null && heading !== undefined) {
           const headingDiff = Math.abs(heading - userHeading);
           if (headingDiff > 1) {
+            // Płynniejsza zmiana kierunku
+            const timeDiff = currentTime - lastHeadingUpdateTime;
+            if (timeDiff > 0) {
+              headingChangeRate = headingDiff / timeDiff;
+            }
+            
             userHeading = heading;
+            lastHeadingUpdateTime = currentTime;
             updateRotation();
           }
         } else if (lastPosition && (currentTime - lastPositionTimestamp) > 100) {
@@ -1006,11 +1103,21 @@
               latitude, longitude
             );
             
-            const smoothingFactor = 0.2;
+            // Płynniejsza zmiana kierunku z adaptacyjnym wygładzaniem
+            // Im szybsza zmiana, tym mniejsze wygładzanie
+            const timeDiff = currentTime - lastHeadingUpdateTime;
+            const changeSpeed = timeDiff > 0 ? Math.abs(calculatedHeading - userHeading) / timeDiff : 0;
+            
+            // Dynamiczne dostosowanie współczynnika wygładzania
+            // Przy szybkich zmianach - mniej wygładzania (do 0.5)
+            // Przy wolnych zmianach - więcej wygładzania (do 0.05)
+            const smoothingFactor = Math.min(0.5, Math.max(0.05, changeSpeed / 10));
+            
             userHeading = userHeading !== null ? 
               userHeading * (1 - smoothingFactor) + calculatedHeading * smoothingFactor : 
               calculatedHeading;
-              
+            
+            lastHeadingUpdateTime = currentTime;
             updateRotation();
             
             clearTimeout(headingTimeout);
@@ -1027,34 +1134,40 @@
         // Aktualizuj okrąg dokładności
         updateAccuracyCircle(userLocation, accuracy);
 
-        // Centrowanie mapy
+        // Centrowanie mapy - płynniejsze
         if (isMapCentered && !userMovedMap && currentTime - lastMapMoveTime > 500) {
-          const bearing = mapRotationEnabled ? userHeading : 0;
-          map.easeTo({
-            center: userLocation,
-            bearing: bearing,
-            duration: 300,
-            easing: (t) => t * (2 - t)
-          });
+          // Używamy animacji zamiast easeTo
+          if (mapRotationEnabled) {
+            // Aktualizacja pozycji jest obsługiwana przez animatePositionUpdate
+            // Nie potrzebujemy wywoływać map.easeTo
+          } else {
+            map.easeTo({
+              center: userLocation,
+              bearing: 0,
+              duration: 300,
+              easing: (t) => t * (2 - t) * (3 - 2 * t) // Płynniejsza funkcja wygładzająca
+            });
+          }
         }
       }
 
-      // Aktualizacja rotacji strzałki i mapy
+      // Aktualizacja rotacji strzałki i mapy - teraz płynniejsza
       function updateRotation() {
         if (userLocationMarker && userLocationMarker.getElement()) {
           if (userHeading !== null) {
-            userLocationMarker.getElement().style.transform = `rotate(${userHeading}deg)`;
-          } else {
-            userLocationMarker.getElement().style.transform = 'rotate(0deg)';
+            // Rotacja samej strzałki - z płynnym przejściem CSS
+            const markerElement = userLocationMarker.getElement().querySelector('img');
+            if (markerElement) {
+              // Dodaj płynne przejście CSS, jeśli jeszcze nie ma
+              if (!markerElement.style.transition) {
+                markerElement.style.transition = 'transform 0.3s ease-out';
+              }
+              markerElement.style.transform = `rotate(${userHeading}deg)`;
+            }
           }
         }
 
-        if (isMapCentered && !userMovedMap && mapRotationEnabled) {
-          map.easeTo({
-            bearing: userHeading,
-            duration: 300
-          });
-        }
+        // Rotacja mapy jest obsługiwana przez animatePositionUpdate
       }
 
       // Obsługa błędów geolokalizacji
