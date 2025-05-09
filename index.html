@@ -8,6 +8,7 @@
       href="https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.25.0/maps/maps.css"
     />
     <script src="https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.25.0/maps/maps-web.min.js"></script>
+    <script src="https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.25.0/services/services-web.min.js"></script>
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
@@ -198,11 +199,154 @@
           width: 85%;
         }
       }
+
+      /* Style dla wyszukiwarki */
+      .search-btn {
+        position: absolute;
+        top: 10px;
+        left: 60px;
+        background: white;
+        border: none;
+        padding: 12px;
+        font-size: 20px;
+        cursor: pointer;
+        border-radius: 50%;
+        z-index: 2;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        width: 45px;
+        height: 45px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .search-panel {
+        display: none;
+        position: absolute;
+        top: 70px;
+        left: 60px;
+        background: white;
+        padding: 15px;
+        border-radius: 10px;
+        font-family: sans-serif;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+        z-index: 2;
+        width: 300px;
+      }
+
+      .search-input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 16px;
+        margin-bottom: 10px;
+      }
+
+      .search-results {
+        max-height: 300px;
+        overflow-y: auto;
+      }
+
+      .search-result-item {
+        padding: 10px;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+      }
+
+      .search-result-item:hover {
+        background-color: #f5f5f5;
+      }
+
+      /* Style dla nawigacji */
+      .navigation-panel {
+        display: none;
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: white;
+        padding: 15px;
+        border-radius: 10px;
+        font-family: sans-serif;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+        z-index: 2;
+        width: 90%;
+        max-width: 400px;
+      }
+
+      .navigation-step {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+
+      .navigation-icon {
+        width: 40px;
+        height: 40px;
+        background: #4CAF50;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 10px;
+        color: white;
+        font-size: 20px;
+      }
+
+      .navigation-info {
+        flex-grow: 1;
+      }
+
+      .navigation-distance {
+        font-size: 14px;
+        color: #666;
+      }
+
+      .navigation-eta {
+        font-size: 14px;
+        color: #666;
+        margin-top: 5px;
+      }
+
+      .navigation-close {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        cursor: pointer;
+        font-size: 20px;
+      }
+
+      @media (max-width: 768px) {
+        .search-panel {
+          width: calc(100% - 40px);
+          right: 20px;
+        }
+
+        .navigation-panel {
+          width: calc(100% - 40px);
+        }
+      }
     </style>
   </head>
 
   <body>
-    <div id="map"></div>
+    <div id="map" class="map"></div>
+
+    <!-- Przycisk wyszukiwania -->
+    <button class="search-btn" id="searchBtn"><i class="fas fa-search"></i></button>
+
+    <!-- Panel wyszukiwania -->
+    <div class="search-panel" id="searchPanel">
+      <input type="text" class="search-input" id="searchInput" placeholder="Wyszukaj miejsce...">
+      <div class="search-results" id="searchResults"></div>
+    </div>
+
+    <!-- Panel nawigacji -->
+    <div class="navigation-panel" id="navigationPanel">
+      <span class="navigation-close" id="navigationClose">&times;</span>
+      <div id="navigationContent"></div>
+    </div>
 
     <!-- Przycisk ustawień -->
     <button class="settings-btn"><i class="fas fa-cog"></i></button>
@@ -220,6 +364,10 @@
       <label>
         <input id="rotation-toggle" type="checkbox" checked />
         Obracaj mapę zgodnie z kierunkiem
+      </label>
+      <label>
+        <input id="buildings-toggle" type="checkbox" />
+        Pokaż budynki 3D
       </label>
     </div>
 
@@ -240,6 +388,8 @@
         container: "map",
         center: [21.0122, 52.2297], // Warszawa
         zoom: 14,
+        // style: "tomtom://vector/1/basic-main",
+        pitch: 0
       });
 
       map.addControl(new tt.NavigationControl());
@@ -255,6 +405,14 @@
       const messageBox = document.getElementById("messageBox");
       const messageBoxContent = document.getElementById("messageBoxContent");
       const messageBoxClose = document.getElementById("messageBoxClose");
+      const buildingsToggle = document.getElementById("buildings-toggle");
+      const searchBtn = document.getElementById('searchBtn');
+      const searchPanel = document.getElementById('searchPanel');
+      const searchInput = document.getElementById('searchInput');
+      const searchResults = document.getElementById('searchResults');
+      const navigationPanel = document.getElementById('navigationPanel');
+      const navigationContent = document.getElementById('navigationContent');
+      const navigationClose = document.getElementById('navigationClose');
 
       // Komunikaty błędów
       const messages = {
@@ -275,9 +433,15 @@
       let headingTimeout = null;
       let mapRotationEnabled = true;
       let autoCenteringEnabled = true;
-      let isMapCentered = true;
+      let isMapCentered = false;
       let lastMapMoveTime = 0;
       let userMovedMap = false;
+      let buildings3DEnabled = false;
+
+      // Zmienne dla nawigacji
+      let currentRoute = null;
+      let currentStep = 0;
+      let routeUpdateInterval = null;
 
       // Obsługa ruchu drogowego
       trafficToggle.addEventListener("change", () => {
@@ -285,6 +449,31 @@
           map.showTrafficFlow();
         } else {
           map.hideTrafficFlow();
+        }
+      });
+
+      // Obsługa budynków 3D
+      buildingsToggle.addEventListener("change", () => {
+        if (buildingsToggle.checked) {
+          if (!buildings3DEnabled) {
+            map.set3DBuildings(true);
+            buildings3DEnabled = true;
+            
+            // Ustaw odpowiedni pitch dla lepszego widoku 3D
+            map.easeTo({
+              pitch: 45,
+              duration: 1000
+            });
+          }
+        } else if (buildings3DEnabled) {
+          map.set3DBuildings(false);
+          buildings3DEnabled = false;
+          
+          // Przywróć płaski widok
+          map.easeTo({
+            pitch: 0,
+            duration: 1000
+          });
         }
       });
 
@@ -411,6 +600,51 @@
         }
       });
 
+      // Obsługa wyszukiwania
+      searchBtn.addEventListener('click', () => {
+        searchPanel.style.display = searchPanel.style.display === 'block' ? 'none' : 'block';
+        if (searchPanel.style.display === 'block') {
+          searchInput.focus();
+        }
+      });
+
+      // Autocomplete dla wyszukiwania
+      let searchTimeout;
+      searchInput.addEventListener('input', (e) => {
+        clearTimeout(searchTimeout);
+        const query = e.target.value;
+        
+        if (query.length < 3) {
+          searchResults.innerHTML = '';
+          return;
+        }
+
+        searchTimeout = setTimeout(() => {
+          tt.services.fuzzySearch({
+            key: apiKey,
+            query: query,
+            language: 'pl-PL',
+            limit: 5
+          })
+          .then(response => {
+            searchResults.innerHTML = '';
+            response.results.forEach(result => {
+              const div = document.createElement('div');
+              div.className = 'search-result-item';
+              div.textContent = result.address.freeformAddress;
+              div.addEventListener('click', () => {
+                selectDestination(result.position);
+                searchPanel.style.display = 'none';
+              });
+              searchResults.appendChild(div);
+            });
+          })
+          .catch(error => {
+            console.error('Błąd wyszukiwania:', error);
+          });
+        }, 300);
+      });
+
       // Obliczanie kursu na podstawie dwóch pozycji GPS
       function calculateHeading(lat1, lon1, lat2, lon2) {
         const toRad = (value) => (value * Math.PI) / 180;
@@ -426,6 +660,246 @@
         
         return bearing;
       }
+
+      // Wybór celu i rozpoczęcie nawigacji
+      function selectDestination(position) {
+        if (!userLocationMarker) {
+          displayErrorMessage('Najpierw włącz lokalizację GPS');
+          return;
+        }
+
+        const start = userLocationMarker.getLngLat();
+        const destination = position;
+
+        // Dodaj markery
+        if (window.destinationMarker) {
+          window.destinationMarker.remove();
+        }
+        
+        window.destinationMarker = new tt.Marker()
+          .setLngLat([destination.lng, destination.lat])
+          .addTo(map);
+
+        // Wyśrodkuj mapę, aby zobaczyć obie lokalizacje
+        const bounds = new tt.LngLatBounds()
+          .extend([start.lng, start.lat])
+          .extend([destination.lng, destination.lat]);
+          
+        map.fitBounds(bounds, { padding: 100 });
+
+        // Opcje routingu
+        const routeOptions = {
+          key: apiKey,
+          traffic: true,
+          travelMode: 'car',
+          language: 'pl-PL',
+          instructionsType: 'text',
+          locations: `${start.lng},${start.lat}:${destination.lng},${destination.lat}`
+        };
+
+        // Pobierz trasę
+        fetch(`https://api.tomtom.com/routing/1/calculateRoute/${start.lat},${start.lng}:${destination.lat},${destination.lng}/json?key=${apiKey}&traffic=true&instructionsType=text&language=pl-PL&travelMode=car`)
+          .then(response => response.json())
+          .then(routeData => {
+            // Wyczyść poprzednią trasę
+            if (window.routeLayer) {
+              map.removeLayer('route');
+              map.removeSource('route');
+            }
+
+            // Ustaw aktualną trasę
+            currentRoute = routeData.routes[0];
+            currentStep = 0;
+
+            // Wyświetl trasę na mapie
+            const routeGeoJson = {
+              type: 'Feature',
+              properties: {},
+              geometry: {
+                type: 'LineString',
+                coordinates: routeData.routes[0].legs[0].points.map(point => 
+                  [point.longitude, point.latitude]
+                )
+              }
+            };
+
+            if (map.getSource('route')) {
+              map.getSource('route').setData(routeGeoJson);
+            } else {
+              map.addSource('route', {
+                type: 'geojson',
+                data: routeGeoJson
+              });
+
+              map.addLayer({
+                id: 'route',
+                type: 'line',
+                source: 'route',
+                layout: {
+                  'line-join': 'round',
+                  'line-cap': 'round'
+                },
+                paint: {
+                  'line-color': '#4CAF50',
+                  'line-width': 6
+                }
+              });
+
+              window.routeLayer = true;
+            }
+
+            // Pokaż nawigację
+            showNavigation();
+            startRouteUpdates();
+          })
+          .catch(error => {
+            console.error('Błąd pobierania trasy:', error);
+            displayErrorMessage('Nie udało się zaplanować trasy');
+          });
+      }
+
+      // Wyświetlanie nawigacji
+      function showNavigation() {
+        if (!currentRoute || !currentRoute.guidance || !currentRoute.guidance.instructions) {
+          console.error("Brak instrukcji nawigacji", currentRoute);
+          return;
+        }
+
+        const instructions = currentRoute.guidance.instructions;
+        if (currentStep >= instructions.length) {
+          console.error("Indeks instrukcji poza zakresem", currentStep, instructions.length);
+          return;
+        }
+
+        const step = instructions[currentStep];
+        const nextStep = currentStep + 1 < instructions.length ? instructions[currentStep + 1] : null;
+        const distance = step.routeOffsetInMeters;
+        const eta = new Date(Date.now() + currentRoute.summary.travelTimeInSeconds * 1000);
+
+        let icon = 'fa-arrow-right';
+        let maneuver = step.message.toLowerCase();
+        
+        if (maneuver.includes('rondo')) {
+          icon = 'fa-circle-notch';
+        } else if (maneuver.includes('lewo')) {
+          icon = 'fa-arrow-left';
+        } else if (maneuver.includes('prawo')) {
+          icon = 'fa-arrow-right';
+        } else if (maneuver.includes('prosto')) {
+          icon = 'fa-arrow-up';
+        } else if (maneuver.includes('zawróć')) {
+          icon = 'fa-arrow-down';
+        }
+
+        navigationContent.innerHTML = `
+          <div class="navigation-step">
+            <div class="navigation-icon">
+              <i class="fas ${icon}"></i>
+            </div>
+            <div class="navigation-info">
+              <div>${step.message}</div>
+              <div class="navigation-distance">${distance} m</div>
+              <div class="navigation-eta">ETA: ${eta.toLocaleTimeString()}</div>
+            </div>
+          </div>
+        `;
+
+        navigationPanel.style.display = 'block';
+      }
+
+      // Aktualizacja nawigacji
+      function startRouteUpdates() {
+        if (routeUpdateInterval) {
+          clearInterval(routeUpdateInterval);
+        }
+
+        routeUpdateInterval = setInterval(() => {
+          if (!userLocationMarker || !currentRoute || !currentRoute.guidance || !currentRoute.guidance.instructions) return;
+
+          const currentPosition = userLocationMarker.getLngLat();
+          const instructions = currentRoute.guidance.instructions;
+          
+          if (currentStep >= instructions.length) return;
+          
+          const step = instructions[currentStep];
+          
+          // Sprawdź czy użytkownik zbliża się do następnego kroku
+          if (step.point && step.point.latitude && step.point.longitude) {
+            const distanceToNextPoint = calculateDistance(
+              currentPosition.lat,
+              currentPosition.lng,
+              step.point.latitude,
+              step.point.longitude
+            );
+            
+            // Jeśli jesteśmy blisko następnego punktu nawigacji (20 metrów)
+            if (distanceToNextPoint < 20) {
+              currentStep++;
+              
+              // Sprawdź czy to koniec trasy
+              if (currentStep >= instructions.length) {
+                clearInterval(routeUpdateInterval);
+                navigationPanel.style.display = 'none';
+                displayErrorMessage('Dotarłeś do celu!');
+                
+                // Usuń trasę z mapy
+                if (window.routeLayer) {
+                  map.removeLayer('route');
+                  map.removeSource('route');
+                  window.routeLayer = false;
+                }
+                
+                // Usuń marker celu
+                if (window.destinationMarker) {
+                  window.destinationMarker.remove();
+                  window.destinationMarker = null;
+                }
+              } else {
+                showNavigation();
+              }
+            } else {
+              // Aktualizuj odległość w panelu nawigacyjnym
+              const distanceElement = document.querySelector('.navigation-distance');
+              if (distanceElement) {
+                distanceElement.textContent = `${Math.round(distanceToNextPoint)} m`;
+              }
+              
+              // Aktualizuj ETA
+              const etaElement = document.querySelector('.navigation-eta');
+              if (etaElement) {
+                const remainingTime = currentRoute.summary.travelTimeInSeconds;
+                const eta = new Date(Date.now() + remainingTime * 1000);
+                etaElement.textContent = `ETA: ${eta.toLocaleTimeString()}`;
+              }
+            }
+          }
+        }, 1000);
+      }
+
+      // Obliczanie odległości między punktami
+      function calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371e3;
+        const φ1 = lat1 * Math.PI/180;
+        const φ2 = lat2 * Math.PI/180;
+        const Δφ = (lat2-lat1) * Math.PI/180;
+        const Δλ = (lon2-lon1) * Math.PI/180;
+
+        const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                Math.cos(φ1) * Math.cos(φ2) *
+                Math.sin(Δλ/2) * Math.sin(Δλ/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+        return R * c;
+      }
+
+      // Zamykanie nawigacji
+      navigationClose.addEventListener('click', () => {
+        navigationPanel.style.display = 'none';
+        if (routeUpdateInterval) {
+          clearInterval(routeUpdateInterval);
+        }
+        currentRoute = null;
+      });
 
       // Obsługa geolokalizacji
       function startUserLocationTracking() {
@@ -466,15 +940,29 @@
 
         // Utwórz lub aktualizuj marker lokalizacji
         if (!userLocationMarker) {
-          const el = document.createElement('div');
-          el.className = 'user-direction-marker';
+          // Tworzenie ikony strzałki jako SVG
+          const svgIcon = `
+            <svg width="40" height="40" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+              <path d="M256 0L32 445.7 256 352l224 93.7z" fill="#ff8000"/>
+            </svg>
+          `;
+          
+          // Konwersja SVG na URL
+          const svgBlob = new Blob([svgIcon], {type: 'image/svg+xml'});
+          const url = URL.createObjectURL(svgBlob);
           
           userLocationMarker = new tt.Marker({
-            element: el,
-            anchor: 'center'
+            element: document.createElement('div'),
+            anchor: 'center',
+            rotationAlignment: 'map',
+            pitchAlignment: 'map'
           })
             .setLngLat(userLocation)
             .addTo(map);
+
+          // Ustawienie ikony
+          const markerElement = userLocationMarker.getElement();
+          markerElement.innerHTML = `<img src="${url}" style="width: 40px; height: 40px;">`;
 
           // Po pierwszym pobraniu lokalizacji, wycentruj mapę
           map.flyTo({
@@ -683,13 +1171,7 @@
         }
       });
 
-      // Inicjalizacja śledzenia lokalizacji przy ładowaniu strony
-      map.on('load', function() {
-        startUserLocationTracking();
-        updateCenterButtonVisibility();
-      });
-
-      // Aktualizacja okręgu dokładności
+      // Inicjalizacja okręgu dokładności
       function updateAccuracyCircle(userLocation, accuracy) {
         if (!userAccuracyCircle) {
           const el = document.createElement('div');
