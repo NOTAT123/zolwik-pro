@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+]<!DOCTYPE html>
 <html lang="pl">
   <head>
     <meta charset="utf-8" />
@@ -124,69 +124,74 @@
         padding: 0 5px;
       }
 
+      /* Style dla mobilnego UI */
+      @media (max-width: 768px) {
+        .settings-btn,
+        .search-btn,
+        .center-btn {
+          width: 55px;
+          height: 55px;
+          font-size: 24px;
+        }
+
+        .settings-panel,
+        .search-panel {
+          width: 80%;
+          max-width: 300px;
+          left: 50%;
+          transform: translateX(-50%);
+        }
+
+        .navigation-panel {
+          bottom: 30px;
+          width: 90%;
+        }
+
+        .navigation-icon {
+          width: 50px;
+          height: 50px;
+          font-size: 24px;
+        }
+
+        .navigation-info {
+          font-size: 18px;
+        }
+
+        .navigation-distance,
+        .navigation-eta {
+          font-size: 16px;
+        }
+
+        .search-input {
+          height: 50px;
+          font-size: 18px;
+        }
+
+        .search-result-item {
+          padding: 15px;
+          font-size: 16px;
+        }
+
+        .message-box {
+          padding: 15px;
+          font-size: 18px;
+        }
+      }
+
+      /* Styl dla strzałki */
       .user-direction-marker {
-        width: 40px;
-        height: 40px;
-        background-image: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="%23ff8000"><path d="M256 0L32 445.7 256 352l224 93.7z"/></svg>');
+        width: 30px;
+        height: 30px;
+        background-image: url('https://cdn3.iconfinder.com/data/icons/arrows-set-3/100/Arrow23-512.png');
         background-size: contain;
         background-repeat: no-repeat;
         background-position: center;
-        transform-origin: center center;
       }
 
       .user-accuracy-circle {
         background-color: rgba(0, 122, 255, 0.1);
         border: 1px solid rgba(0, 122, 255, 0.3);
         border-radius: 50%;
-      }
-
-      /* Media queries dla urządzeń mobilnych */
-      @media (max-width: 768px) {
-        .settings-btn {
-          top: 15px;
-          left: 15px;
-          width: 50px;
-          height: 50px;
-          font-size: 22px;
-        }
-
-        .settings-panel {
-          top: 80px;
-          left: 15px;
-          width: 250px;
-          padding: 20px;
-        }
-
-        .settings-panel label {
-          font-size: 18px;
-          margin-bottom: 15px;
-        }
-
-        .settings-panel input[type="checkbox"] {
-          width: 20px;
-          height: 20px;
-        }
-
-        .center-btn {
-          bottom: 120px;
-          right: 20px;
-          width: 50px;
-          height: 50px;
-          font-size: 22px;
-        }
-
-        .message-box {
-          top: 15px;
-          padding: 15px;
-        }
-
-        .message-box-content {
-          font-size: 18px;
-        }
-
-        .message-box-close {
-          font-size: 24px;
-        }
       }
 
       /* Dodatkowe style dla małych ekranów */
@@ -433,7 +438,7 @@
       let headingTimeout = null;
       let mapRotationEnabled = true;
       let autoCenteringEnabled = true;
-      let isMapCentered = false;
+      let isMapCentered = true;
       let lastMapMoveTime = 0;
       let userMovedMap = false;
       let buildings3DEnabled = false;
@@ -450,6 +455,14 @@
       let currentRoute = null;
       let currentStep = 0;
       let routeUpdateInterval = null;
+
+      // Zmienne dla nawigacji głosowej
+      let speechSynthesis = window.speechSynthesis;
+      let lastVoiceInstruction = "";
+      let lastVoiceTime = 0;
+      let voiceEnabled = true;
+      let nextManeuverDistance = 0;
+      let upcomingManeuver = "";
 
       // Obsługa ruchu drogowego
       trafficToggle.addEventListener("change", () => {
@@ -728,6 +741,11 @@
             currentRoute = routeData.routes[0];
             currentStep = 0;
 
+            // Włącz automatyczne centrowanie podczas nawigacji
+            isMapCentered = true;
+            userMovedMap = false;
+            updateCenterButtonVisibility();
+
             // Wyświetl trasę na mapie
             const routeGeoJson = {
               type: 'Feature',
@@ -768,6 +786,18 @@
             // Pokaż nawigację
             showNavigation();
             startRouteUpdates();
+            
+            // Odtwórz powitanie nawigacji
+            speakInstruction("Rozpoczynamy nawigację");
+            
+            // Po 2 sekundach, podaj pierwszy manewr
+            setTimeout(() => {
+              if (currentRoute && currentRoute.guidance && currentRoute.guidance.instructions && currentRoute.guidance.instructions.length > 0) {
+                const firstInstruction = currentRoute.guidance.instructions[0];
+                const distance = firstInstruction.routeOffsetInMeters || 500; // Domyślnie 500m, jeśli brak danych
+                speakInstruction(formatVoiceInstruction(firstInstruction, distance));
+              }
+            }, 2000);
           })
           .catch(error => {
             console.error('Błąd pobierania trasy:', error);
@@ -857,6 +887,9 @@
               if (currentStep >= instructions.length) {
                 clearInterval(routeUpdateInterval);
                 navigationPanel.style.display = 'none';
+                
+                // Informacja o dotarciu do celu
+                speakInstruction("Dotarłeś do celu");
                 displayErrorMessage('Dotarłeś do celu!');
                 
                 // Usuń trasę z mapy
@@ -873,21 +906,19 @@
                 }
               } else {
                 showNavigation();
+                
+                // Informuj o następnym manewrze
+                const nextStep = instructions[currentStep];
+                if (nextStep) {
+                  const distance = nextStep.routeOffsetInMeters || 500;
+                  setTimeout(() => {
+                    speakInstruction(formatVoiceInstruction(nextStep, distance));
+                  }, 1000);
+                }
               }
             } else {
               // Aktualizuj odległość w panelu nawigacyjnym
-              const distanceElement = document.querySelector('.navigation-distance');
-              if (distanceElement) {
-                distanceElement.textContent = `${Math.round(distanceToNextPoint)} m`;
-              }
-              
-              // Aktualizuj ETA
-              const etaElement = document.querySelector('.navigation-eta');
-              if (etaElement) {
-                const remainingTime = currentRoute.summary.travelTimeInSeconds;
-                const eta = new Date(Date.now() + remainingTime * 1000);
-                etaElement.textContent = `ETA: ${eta.toLocaleTimeString()}`;
-              }
+              updateNavigationPanel(distanceToNextPoint);
             }
           }
         }, 1000);
@@ -1098,11 +1129,7 @@
         if (!userLocationMarker) {
           // Tworzenie strzałki jako element DOM
           const el = document.createElement('div');
-          el.style.width = '30px';
-          el.style.height = '30px';
-          el.style.backgroundImage = "url('https://cdn3.iconfinder.com/data/icons/arrows-set-3/100/Arrow23-512.png')";
-          el.style.backgroundSize = 'contain';
-          el.style.backgroundRepeat = 'no-repeat';
+          el.className = 'user-direction-marker';
           
           // Utwórz marker TomTom
           userLocationMarker = new tt.Marker({element: el})
@@ -1152,6 +1179,11 @@
             bearing: userHeading,
             duration: 300
           });
+        }
+        
+        // Aktualizacja nawigacji głosowej, jeśli trasa jest aktywna
+        if (currentRoute && currentRoute.guidance && currentRoute.guidance.instructions) {
+          updateVoiceGuidance(userLocation);
         }
       }
 
@@ -1279,6 +1311,140 @@
           updateCenterButtonVisibility();
         }
       });
+
+      // Funkcja do odtwarzania instrukcji głosowych
+      function speakInstruction(text) {
+        if (!voiceEnabled || !speechSynthesis) return;
+        
+        // Nie powtarzaj tej samej instrukcji zbyt często
+        const now = Date.now();
+        if (text === lastVoiceInstruction && now - lastVoiceTime < 10000) return;
+        
+        // Zatrzymaj wszystkie aktualnie odtwarzane głosy
+        speechSynthesis.cancel();
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'pl-PL';
+        utterance.volume = 1;
+        utterance.rate = 1;
+        utterance.pitch = 1;
+        
+        // Znajdź polski głos, jeśli jest dostępny
+        const voices = speechSynthesis.getVoices();
+        const polishVoice = voices.find(voice => voice.lang.includes('pl'));
+        if (polishVoice) {
+          utterance.voice = polishVoice;
+        }
+        
+        speechSynthesis.speak(utterance);
+        
+        lastVoiceInstruction = text;
+        lastVoiceTime = now;
+      }
+
+      // Funkcja do formatowania instrukcji głosowej
+      function formatVoiceInstruction(step, distance) {
+        if (!step) return "";
+        
+        let message = step.message.toLowerCase();
+        const distanceInMeters = Math.round(distance);
+        
+        if (distanceInMeters <= 35) {
+          // Jeśli jesteśmy blisko manewru (35 metrów lub mniej)
+          if (message.includes("skręć w lewo")) {
+            return "Skręć w lewo";
+          } else if (message.includes("skręć w prawo")) {
+            return "Skręć w prawo";
+          } else if (message.includes("zawróć")) {
+            return "Zawróć";
+          } else if (message.includes("prosto")) {
+            return "Jedź prosto";
+          } else if (message.includes("rondo")) {
+            if (message.includes("pierwszy")) {
+              return "Na rondzie pierwszy zjazd";
+            } else if (message.includes("drugi")) {
+              return "Na rondzie drugi zjazd";
+            } else if (message.includes("trzeci")) {
+              return "Na rondzie trzeci zjazd";
+            } else {
+              return message;
+            }
+          } else {
+            return message;
+          }
+        } else {
+          // Jeśli jesteśmy dalej od manewru
+          let instruction = `Za ${distanceInMeters} metrów `;
+          
+          if (message.includes("skręć w lewo")) {
+            instruction += "skręć w lewo";
+          } else if (message.includes("skręć w prawo")) {
+            instruction += "skręć w prawo";
+          } else if (message.includes("zawróć")) {
+            instruction += "zawróć";
+          } else if (message.includes("prosto")) {
+            instruction += "jedź prosto";
+          } else if (message.includes("rondo")) {
+            if (message.includes("pierwszy")) {
+              instruction += "na rondzie pierwszy zjazd";
+            } else if (message.includes("drugi")) {
+              instruction += "na rondzie drugi zjazd";
+            } else if (message.includes("trzeci")) {
+              instruction += "na rondzie trzeci zjazd";
+            } else {
+              instruction += message;
+            }
+          } else {
+            instruction += message;
+          }
+          
+          return instruction;
+        }
+      }
+
+      // Aktualizacja wskazówek głosowych na podstawie aktualnej pozycji
+      function updateVoiceGuidance(userLocation) {
+        if (!currentRoute || !currentRoute.guidance || !currentRoute.guidance.instructions) return;
+        
+        if (currentStep >= currentRoute.guidance.instructions.length) return;
+        
+        const currentInstruction = currentRoute.guidance.instructions[currentStep];
+        
+        if (!currentInstruction || !currentInstruction.point) return;
+        
+        // Oblicz odległość do kolejnego manewru
+        const distanceToManeuver = calculateDistance(
+          userLocation[1], userLocation[0],
+          currentInstruction.point.latitude, currentInstruction.point.longitude
+        );
+        
+        // Aktualizuj wartości dla wyświetlania i komunikatów
+        nextManeuverDistance = distanceToManeuver;
+        upcomingManeuver = currentInstruction.message;
+        
+        // Odtwórz instrukcje głosowe na podstawie odległości
+        if (distanceToManeuver <= 35) {
+          // Tuż przed manewrem (35m lub mniej)
+          speakInstruction(formatVoiceInstruction(currentInstruction, distanceToManeuver));
+        } else if (distanceToManeuver <= 150 && Math.abs(distanceToManeuver - nextManeuverDistance) > 20) {
+          // Zbliżamy się do manewru (150-35m)
+          speakInstruction(formatVoiceInstruction(currentInstruction, distanceToManeuver));
+        } else if (distanceToManeuver <= 500 && Math.abs(distanceToManeuver - nextManeuverDistance) > 50) {
+          // Manewr jest w zasięgu (500-150m)
+          speakInstruction(formatVoiceInstruction(currentInstruction, distanceToManeuver));
+        }
+        
+        // Aktualizacja panelu nawigacji
+        updateNavigationPanel(distanceToManeuver);
+      }
+
+      // Aktualizacja panelu nawigacji
+      function updateNavigationPanel(distanceToManeuver) {
+        const distanceElement = document.querySelector('.navigation-distance');
+        if (distanceElement) {
+          distanceElement.textContent = `${Math.round(distanceToManeuver)} m`;
+        }
+      }
     </script>
   </body>
 </html>
