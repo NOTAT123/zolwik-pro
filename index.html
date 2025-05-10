@@ -1,4 +1,4 @@
-]<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pl">
   <head>
     <meta charset="utf-8" />
@@ -71,28 +71,27 @@
       }
 
       .center-btn {
-        position: absolute;
-        bottom: 100px;
-        right: 15px;
-        background: white;
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        background: #0066ff;
+        color: white;
         border: none;
         border-radius: 50%;
-        width: 45px;
-        height: 45px;
-        font-size: 20px;
+        width: 60px;
+        height: 60px;
+        font-size: 24px;
         cursor: pointer;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-        z-index: 2;
-        display: none;
-        transition: opacity 0.3s ease-in-out;
-        opacity: 0;
-      }
-
-      .center-btn.visible {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        z-index: 1000;
         display: flex;
         justify-content: center;
         align-items: center;
-        opacity: 1;
+      }
+
+      .center-btn:hover {
+        background: #0055dd;
+        transform: scale(1.05);
       }
 
       .message-box {
@@ -128,14 +127,18 @@
       @media (max-width: 768px) {
         .settings-btn,
         .search-btn,
-        .center-btn {
+        .center-btn,
+        .favorites-btn,
+        .layers-btn {
           width: 55px;
           height: 55px;
           font-size: 24px;
         }
 
         .settings-panel,
-        .search-panel {
+        .search-panel,
+        .favorites-panel,
+        .layers-panel {
           width: 80%;
           max-width: 300px;
           left: 50%;
@@ -176,16 +179,36 @@
           padding: 15px;
           font-size: 18px;
         }
+        
+        .user-direction-marker {
+          width: 40px;
+          height: 40px;
+        }
+        
+        .favorite-item, 
+        .add-favorite {
+          padding: 15px;
+          font-size: 18px;
+        }
       }
 
       /* Styl dla strzałki */
       .user-direction-marker {
         width: 30px;
         height: 30px;
-        background-image: url('https://cdn3.iconfinder.com/data/icons/arrows-set-3/100/Arrow23-512.png');
+        background-image: url('arrowup.png');
         background-size: contain;
         background-repeat: no-repeat;
         background-position: center;
+        transform-origin: center center;
+      }
+
+      /* Zwiększ rozmiar strzałki na telefonach dla lepszej widoczności */
+      @media (max-width: 768px) {
+        .user-direction-marker {
+          width: 40px;
+          height: 40px;
+        }
       }
 
       .user-accuracy-circle {
@@ -332,6 +355,221 @@
           width: calc(100% - 40px);
         }
       }
+
+      /* Style dla ulubionych miejsc */
+      .favorites-btn {
+        position: absolute;
+        top: 10px;
+        left: 110px;
+        background: white;
+        border: none;
+        padding: 12px;
+        font-size: 20px;
+        cursor: pointer;
+        border-radius: 50%;
+        z-index: 2;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        width: 45px;
+        height: 45px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .favorites-panel {
+        display: none;
+        position: absolute;
+        top: 70px;
+        left: 110px;
+        background: white;
+        padding: 15px;
+        border-radius: 10px;
+        font-family: sans-serif;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+        z-index: 2;
+        width: 250px;
+      }
+
+      .favorites-list {
+        max-height: 300px;
+        overflow-y: auto;
+      }
+
+      .favorite-item {
+        padding: 10px;
+        margin-bottom: 5px;
+        border-radius: 5px;
+        background-color: #f5f5f5;
+        cursor: pointer;
+        position: relative;
+      }
+
+      .favorite-item:hover {
+        background-color: #e5e5e5;
+      }
+
+      .favorite-item .delete-btn {
+        position: absolute;
+        right: 5px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #ff0000;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 16px;
+      }
+
+      .add-favorite {
+        margin-top: 10px;
+        padding: 8px 12px;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        width: 100%;
+      }
+
+      /* Style dla legendy */
+      .map-features-legend {
+        position: absolute;
+        bottom: 30px;
+        right: 10px;
+        background: white;
+        padding: 10px;
+        border-radius: 10px;
+        font-family: sans-serif;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+        z-index: 2;
+        max-width: 250px;
+        display: none;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 5px;
+      }
+
+      .legend-color {
+        width: 15px;
+        height: 15px;
+        border-radius: 50%;
+        margin-right: 10px;
+      }
+
+      .legend-title {
+        margin: 0 0 10px 0;
+        font-weight: bold;
+      }
+
+      /* Style dla warstw */
+      .layers-btn {
+        position: absolute;
+        top: 10px;
+        left: 160px;
+        background: white;
+        border: none;
+        padding: 12px;
+        font-size: 20px;
+        cursor: pointer;
+        border-radius: 50%;
+        z-index: 2;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        width: 45px;
+        height: 45px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .layers-panel {
+        display: none;
+        position: absolute;
+        top: 70px;
+        left: 160px;
+        background: white;
+        padding: 15px;
+        border-radius: 10px;
+        font-family: sans-serif;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+        z-index: 2;
+        width: 250px;
+      }
+
+      .layers-panel label {
+        display: flex;
+        align-items: center;
+        margin-bottom: 12px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+
+      .layers-panel input[type="checkbox"] {
+        margin-right: 10px;
+        width: 18px;
+        height: 18px;
+      }
+
+      /* Style dla wskaźnika prędkości */
+      .speed-container {
+        position: fixed;
+        bottom: 100px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        z-index: 1000;
+      }
+
+      .speed-indicator {
+        background-color: #0066ff;
+        color: white;
+        border-radius: 25px;
+        padding: 8px 15px;
+        margin-right: 10px;
+        font-family: Arial, sans-serif;
+        font-size: 24px;
+        font-weight: bold;
+        text-align: center;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        min-width: 80px;
+      }
+
+      .speed-limit {
+        background-color: white;
+        color: #333;
+        border: 2px solid #ff0000;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: Arial, sans-serif;
+        font-size: 18px;
+        font-weight: bold;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      }
+
+      /* Styl dla wskaźnika na telefonie */
+      @media (max-width: 768px) {
+        .speed-container {
+          bottom: 120px;
+        }
+
+        .speed-indicator {
+          font-size: 28px;
+          padding: 10px 20px;
+        }
+
+        .speed-limit {
+          width: 60px;
+          height: 60px;
+          font-size: 22px;
+        }
+      }
     </style>
   </head>
 
@@ -377,12 +615,79 @@
     </div>
 
     <!-- Przycisk centrowania -->
-    <button class="center-btn" id="centerButton"><i class="fas fa-location-arrow"></i></button>
+    <button class="center-btn" id="centerButton"><i class="fas fa-location-crosshairs"></i></button>
 
     <!-- Komunikat o błędzie -->
     <div class="message-box" id="messageBox" hidden>
       <div class="message-box-content" id="messageBoxContent"></div>
       <span class="message-box-close" id="messageBoxClose">&times;</span>
+    </div>
+
+    <!-- Wskaźnik prędkości -->
+    <div class="speed-container" id="speedContainer">
+      <div class="speed-indicator" id="speedIndicator">0 km/h</div>
+      <div class="speed-limit" id="speedLimit">50</div>
+    </div>
+    
+    <!-- Przycisk ulubionych miejsc -->
+    <button class="favorites-btn" id="favoritesBtn"><i class="fas fa-heart"></i></button>
+
+    <!-- Panel ulubionych miejsc -->
+    <div class="favorites-panel" id="favoritesPanel">
+      <div class="favorites-list" id="favoritesList"></div>
+      <button class="add-favorite" id="addFavorite">Dodaj ulubione miejsce</button>
+    </div>
+
+    <!-- Przycisk warstw -->
+    <button class="layers-btn" id="layersBtn"><i class="fas fa-layer-group"></i></button>
+
+    <!-- Panel warstw -->
+    <div class="layers-panel" id="layersPanel">
+      <label>
+        <input type="checkbox" id="speedcams-toggle" />
+        Fotoradary i kontrole prędkości
+      </label>
+      <label>
+        <input type="checkbox" id="roadworks-toggle" />
+        Prace drogowe
+      </label>
+      <label>
+        <input type="checkbox" id="poi-toggle" />
+        Punkty zainteresowania (POI)
+      </label>
+      <label>
+        <input type="checkbox" id="reports-toggle" />
+        Zgłoszenia użytkowników
+      </label>
+    </div>
+
+    <!-- Legenda -->
+    <div class="map-features-legend" id="mapFeaturesLegend">
+      <h4 class="legend-title">Legenda</h4>
+      <div class="legend-item">
+        <div class="legend-color" style="background-color: #ff0000;"></div>
+        <span>Fotoradar</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background-color: #ffa500;"></div>
+        <span>Kontrola prędkości</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background-color: #ffff00;"></div>
+        <span>Prace drogowe</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background-color: #ff9900;"></div>
+        <span>Kamera drogowa</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background-color: #cc0000;"></div>
+        <span>Miejsce wypadku</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background-color: #0000ff;"></div>
+        <span>Ulubione miejsca</span>
+      </div>
     </div>
 
     <script>
@@ -391,7 +696,7 @@
       const map = tt.map({
         key: apiKey,
         container: "map",
-        center: [21.0122, 52.2297], // Warszawa
+        center: [21.0122, 52.2297], // Warszawa - tymczasowy punkt startowy
         zoom: 14,
         // style: "tomtom://vector/1/basic-main",
         pitch: 0
@@ -399,6 +704,45 @@
 
       map.addControl(new tt.NavigationControl());
       map.addControl(new tt.FullscreenControl());
+
+      // Inicjalizacja - spróbuj natychmiast pobrać lokalizację
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          function(position) {
+            // Otrzymano lokalizację - wycentruj mapę
+            const { latitude, longitude } = position.coords;
+            map.flyTo({
+              center: [longitude, latitude],
+              zoom: 16,
+              duration: 1000
+            });
+            // Komunikat
+            displayErrorMessage("Lokalizacja znaleziona! Inicjalizacja śledzenia...");
+          },
+          function(error) {
+            // Błąd lokalizacji - pozostawiamy Warszawę
+            console.warn("Nie można pobrać początkowej lokalizacji:", error);
+            displayErrorMessage("Nie można pobrać Twojej lokalizacji. Wyświetlam domyślny widok.");
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0
+          }
+        );
+      }
+      
+      // Wymuszenie widoczności przycisku centrowania od początku
+      // centerButton.classList.add('visible');
+      
+      // Obsługa zdarzeń mapy
+      map.on('movestart', function(e) {
+        if (e.originalEvent) {
+          console.log("Użytkownik rozpoczął przesuwanie mapy");
+          userMovedMap = true;
+          isMapCentered = false;
+        }
+      });
 
       // Elementy UI
       const settingsBtn = document.querySelector(".settings-btn");
@@ -418,6 +762,15 @@
       const navigationPanel = document.getElementById('navigationPanel');
       const navigationContent = document.getElementById('navigationContent');
       const navigationClose = document.getElementById('navigationClose');
+      const favoritesBtn = document.getElementById('favoritesBtn');
+      const favoritesPanel = document.getElementById('favoritesPanel');
+      const favoritesList = document.getElementById('favoritesList');
+      const addFavorite = document.getElementById('addFavorite');
+      const layersBtn = document.getElementById('layersBtn');
+      const layersPanel = document.getElementById('layersPanel');
+      const speedIndicator = document.getElementById('speedIndicator');
+      const speedLimit = document.getElementById('speedLimit');
+      const speedContainer = document.getElementById('speedContainer');
 
       // Komunikaty błędów
       const messages = {
@@ -463,6 +816,26 @@
       let voiceEnabled = true;
       let nextManeuverDistance = 0;
       let upcomingManeuver = "";
+      
+      // Zmienne dla warstw mapy
+      let speedcamsLayer = null;
+      let roadworksLayer = null;
+      let poiLayer = null;
+      let favoritesLayer = null;
+      let reportsLayer = null;
+      
+      // Zmienne dla audio
+      let originalVolumeOfBackgroundAudio = [];
+      let backgroundAudioElements = [];
+      let isAudioLowered = false;
+      
+      // Zmienne dla prędkości
+      let currentSpeed = 0;
+      let currentSpeedLimit = 50;  // Domyślne ograniczenie prędkości
+      let lastSpeedUpdate = 0;
+      
+      // Ulubione miejsca
+      let favoriteLocations = JSON.parse(localStorage.getItem('favoriteLocations') || '[]');
 
       // Obsługa ruchu drogowego
       trafficToggle.addEventListener("change", () => {
@@ -672,645 +1045,815 @@
         }, 300);
       });
 
-      // Obliczanie kursu na podstawie dwóch pozycji GPS
-      function calculateHeading(lat1, lon1, lat2, lon2) {
-        const toRad = (value) => (value * Math.PI) / 180;
-        const toDeg = (value) => (value * 180) / Math.PI;
+      // Obsługa warstw
+      layersBtn.addEventListener('click', () => {
+        layersPanel.style.display = layersPanel.style.display === 'block' ? 'none' : 'block';
+      });
+
+      // Obsługa fotoradarów i kontroli prędkości
+      document.getElementById('speedcams-toggle').addEventListener('change', (e) => {
+        if (e.target.checked) {
+          loadSpeedCameras();
+          document.getElementById('mapFeaturesLegend').style.display = 'block';
+        } else {
+          if (speedcamsLayer) {
+            map.removeLayer('speedcams');
+            map.removeSource('speedcams');
+            speedcamsLayer = null;
+          }
+          updateLegendVisibility();
+        }
+      });
+
+      // Obsługa prac drogowych
+      document.getElementById('roadworks-toggle').addEventListener('change', (e) => {
+        if (e.target.checked) {
+          loadRoadworks();
+          document.getElementById('mapFeaturesLegend').style.display = 'block';
+        } else {
+          if (roadworksLayer) {
+            map.removeLayer('roadworks');
+            map.removeSource('roadworks');
+            roadworksLayer = null;
+          }
+          updateLegendVisibility();
+        }
+      });
+
+      // Obsługa POI
+      document.getElementById('poi-toggle').addEventListener('change', (e) => {
+        if (e.target.checked) {
+          loadPointsOfInterest();
+        } else {
+          if (poiLayer) {
+            map.removeLayer('pois');
+            map.removeSource('pois');
+            poiLayer = null;
+          }
+        }
+      });
+
+      // Obsługa zgłoszeń użytkowników
+      document.getElementById('reports-toggle').addEventListener('change', (e) => {
+        if (e.target.checked) {
+          if (lastPosition) {
+            loadReportsFromOverpass(lastPosition[1], lastPosition[0]);
+          } else {
+            displayErrorMessage('Najpierw włącz lokalizację GPS');
+            e.target.checked = false;
+          }
+        } else {
+          if (reportsLayer) {
+            map.removeLayer('reports');
+            map.removeSource('reports');
+            reportsLayer = null;
+          }
+        }
+      });
+
+      // Ładowanie zgłoszeń z Overpass API
+      function loadReportsFromOverpass(lat, lng) {
+        // Pokaż informację o ładowaniu
+        displayErrorMessage('Ładowanie zgłoszeń z Overpass API...');
         
-        const dLon = toRad(lon2 - lon1);
-        const y = Math.sin(dLon) * Math.cos(toRad(lat2));
-        const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
-                Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
+        // Promień wyszukiwania w metrach
+        const radius = 10000; // 10km
         
-        let bearing = toDeg(Math.atan2(y, x));
-        bearing = (bearing + 360) % 360;
+        // Budowanie zapytania Overpass
+        const query = `
+          [out:json][timeout:25];
+          (
+            // Fotoradary
+            node["highway"="speed_camera"](around:${radius},${lat},${lng});
+            // Kamery drogowe
+            node["highway"="traffic_signals"]["camera"](around:${radius},${lat},${lng});
+            // Prace drogowe
+            way["highway"]["construction"](around:${radius},${lat},${lng});
+            // Miejsca częstej kontroli prędkości
+            node["highway"]["traffic_calming"](around:${radius},${lat},${lng});
+            // Miejsca wypadków
+            node["hazard"="accident"](around:${radius},${lat},${lng});
+          );
+          out body;
+          >;
+          out skel qt;
+        `;
         
-        return bearing;
+        // Teraz faktycznie używamy API Overpass zamiast symulowanych danych
+        const overpassUrl = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+        
+        fetch(overpassUrl)
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Błąd pobierania danych z API Overpass');
+            }
+            return response.json();
+          })
+          .then(data => {
+            processOverpassResults(data);
+          })
+          .catch(error => {
+            console.error('Błąd zapytania Overpass:', error);
+            displayErrorMessage('Nie udało się pobrać zgłoszeń. Używam danych lokalnych.');
+            
+            // Fallback na dane offline jeśli API nie odpowiada
+            const simulatedResults = {
+              elements: [
+                { 
+                  id: 1, 
+                  type: "node", 
+                  lat: lat + 0.002, 
+                  lon: lng + 0.003, 
+                  tags: { 
+                    highway: "speed_camera", 
+                    name: "Fotoradar stacjonarny", 
+                    description: "Kontrola prędkości na prostym odcinku" 
+                  } 
+                },
+                { 
+                  id: 2, 
+                  type: "node", 
+                  lat: lat - 0.001, 
+                  lon: lng + 0.002, 
+                  tags: { 
+                    highway: "traffic_signals", 
+                    camera: "yes", 
+                    name: "Kamera na skrzyżowaniu", 
+                    description: "Monitoring przejazdu na czerwonym świetle" 
+                  } 
+                },
+                { 
+                  id: 3, 
+                  type: "node", 
+                  lat: lat + 0.003, 
+                  lon: lng - 0.002, 
+                  tags: { 
+                    highway: "traffic_calming", 
+                    name: "Częste kontrole prędkości", 
+                    description: "Miejsce regularnych kontroli policyjnych" 
+                  } 
+                },
+                { 
+                  id: 4, 
+                  type: "node", 
+                  lat: lat - 0.002, 
+                  lon: lng - 0.001, 
+                  tags: { 
+                    hazard: "accident", 
+                    name: "Miejsce wypadku", 
+                    description: "Niebezpieczne skrzyżowanie, częste kolizje" 
+                  } 
+                }
+              ]
+            };
+            processOverpassResults(simulatedResults);
+          });
+      }
+      
+      // Przetwarzanie wyników z Overpass API
+      function processOverpassResults(data) {
+        if (!data || !data.elements || data.elements.length === 0) {
+          displayErrorMessage('Brak zgłoszeń w okolicy');
+          return;
+        }
+        
+        // Ukryj komunikat o ładowaniu
+        if (messageBox && !messageBox.getAttribute('hidden')) {
+          messageBox.setAttribute('hidden', true);
+        }
+        
+        // Przygotuj features dla GeoJSON
+        const features = data.elements.map(element => {
+          // Sprawdź czy element ma współrzędne
+          if (!element.lat || !element.lon) return null;
+          
+          // Określ typ zgłoszenia i ikonę
+          let type = 'unknown';
+          let icon = 'marker-15';
+          let color = '#ff0000';
+          let description = 'Brak opisu';
+          
+          if (element.tags) {
+            if (element.tags.highway === 'speed_camera') {
+              type = 'speed_camera';
+              icon = 'camera-15';
+              color = '#ff0000';
+              description = element.tags.description || 'Fotoradar';
+            } else if (element.tags.camera === 'yes') {
+              type = 'traffic_camera';
+              icon = 'camera-15';
+              color = '#ff9900';
+              description = element.tags.description || 'Kamera drogowa';
+            } else if (element.tags.construction) {
+              type = 'roadworks';
+              icon = 'roadblock-15';
+              color = '#ffcc00';
+              description = element.tags.description || 'Prace drogowe';
+            } else if (element.tags.traffic_calming) {
+              type = 'speed_control';
+              icon = 'police-15';
+              color = '#ffa500';
+              description = element.tags.description || 'Kontrola prędkości';
+            } else if (element.tags.hazard === 'accident') {
+              type = 'accident';
+              icon = 'danger-15';
+              color = '#cc0000';
+              description = element.tags.description || 'Miejsce wypadku';
+            }
+          }
+          
+          // Utwórz feature GeoJSON
+          return {
+            type: 'Feature',
+            properties: {
+              id: element.id,
+              type: type,
+              name: element.tags?.name || 'Zgłoszenie',
+              description: description,
+              color: color
+            },
+            geometry: {
+              type: 'Point',
+              coordinates: [element.lon, element.lat]
+            }
+          };
+        }).filter(feature => feature !== null);
+        
+        // Usuń istniejącą warstwę jeśli istnieje
+        if (map.getLayer('reports')) {
+          map.removeLayer('reports');
+        }
+        
+        if (map.getSource('reports')) {
+          map.removeSource('reports');
+        }
+        
+        // Dodaj źródło danych
+        map.addSource('reports', {
+          type: 'geojson',
+          data: {
+            type: 'FeatureCollection',
+            features: features
+          }
+        });
+        
+        // Dodaj warstwę
+        map.addLayer({
+          id: 'reports',
+          type: 'symbol',
+          source: 'reports',
+          layout: {
+            'icon-image': [
+              'match',
+              ['get', 'type'],
+              'speed_camera', 'camera-15',
+              'traffic_camera', 'camera-15',
+              'roadworks', 'roadblock-15',
+              'speed_control', 'police-15',
+              'accident', 'danger-15',
+              'marker-15'
+            ],
+            'icon-size': 1.2,
+            'icon-allow-overlap': true,
+            'text-field': ['get', 'name'],
+            'text-font': ['Arial Unicode MS Bold'],
+            'text-offset': [0, 1],
+            'text-anchor': 'top'
+          },
+          paint: {
+            'text-color': ['get', 'color'],
+            'text-halo-color': '#ffffff',
+            'text-halo-width': 1
+          }
+        });
+        
+        // Dodaj obsługę kliknięcia
+        map.on('click', 'reports', (e) => {
+          const properties = e.features[0].properties;
+          const coordinates = e.features[0].geometry.coordinates.slice();
+          
+          // Utwórz popup
+          new tt.Popup()
+            .setLngLat(coordinates)
+            .setHTML(`
+              <div style="padding: 10px;">
+                <h3 style="margin: 0 0 5px 0;">${properties.name}</h3>
+                <p style="margin: 0;">${properties.description}</p>
+              </div>
+            `)
+            .addTo(map);
+        });
+        
+        // Zmień kursor przy najeździe
+        map.on('mouseenter', 'reports', () => {
+          map.getCanvas().style.cursor = 'pointer';
+        });
+        
+        map.on('mouseleave', 'reports', () => {
+          map.getCanvas().style.cursor = '';
+        });
+        
+        reportsLayer = true;
+        
+        // Aktualizuj legendę
+        document.getElementById('mapFeaturesLegend').style.display = 'block';
       }
 
-      // Wybór celu i rozpoczęcie nawigacji
-      function selectDestination(position) {
+      // Funkcja aktualizująca widoczność legendy
+      function updateLegendVisibility() {
+        const shouldShowLegend = document.getElementById('speedcams-toggle').checked || 
+                                document.getElementById('roadworks-toggle').checked ||
+                                document.getElementById('reports-toggle').checked;
+        document.getElementById('mapFeaturesLegend').style.display = shouldShowLegend ? 'block' : 'none';
+      }
+
+      // Obsługa ulubionych miejsc
+      favoritesBtn.addEventListener('click', () => {
+        favoritesPanel.style.display = favoritesPanel.style.display === 'block' ? 'none' : 'block';
+        if (favoritesPanel.style.display === 'block') {
+          renderFavorites();
+        }
+      });
+
+      // Dodanie ulubionego miejsca
+      addFavorite.addEventListener('click', () => {
         if (!userLocationMarker) {
           displayErrorMessage('Najpierw włącz lokalizację GPS');
           return;
         }
 
-        const start = userLocationMarker.getLngLat();
-        const destination = position;
-
-        // Dodaj markery
-        if (window.destinationMarker) {
-          window.destinationMarker.remove();
-        }
+        const position = userLocationMarker.getLngLat();
+        const name = prompt('Nazwa ulubionego miejsca:');
         
-        window.destinationMarker = new tt.Marker({
-          rotationAlignment: 'viewport',
-          pitchAlignment: 'viewport'
-        })
-          .setLngLat([destination.lng, destination.lat])
-          .addTo(map);
-
-        // Wyśrodkuj mapę, aby zobaczyć obie lokalizacje
-        const bounds = new tt.LngLatBounds()
-          .extend([start.lng, start.lat])
-          .extend([destination.lng, destination.lat]);
-          
-        map.fitBounds(bounds, { padding: 100 });
-
-        // Opcje routingu
-        const routeOptions = {
-          key: apiKey,
-          traffic: true,
-          travelMode: 'car',
-          language: 'pl-PL',
-          instructionsType: 'text',
-          locations: `${start.lng},${start.lat}:${destination.lng},${destination.lat}`
-        };
-
-        // Pobierz trasę
-        fetch(`https://api.tomtom.com/routing/1/calculateRoute/${start.lat},${start.lng}:${destination.lat},${destination.lng}/json?key=${apiKey}&traffic=true&instructionsType=text&language=pl-PL&travelMode=car`)
-          .then(response => response.json())
-          .then(routeData => {
-            // Wyczyść poprzednią trasę
-            if (window.routeLayer) {
-              map.removeLayer('route');
-              map.removeSource('route');
-            }
-
-            // Ustaw aktualną trasę
-            currentRoute = routeData.routes[0];
-            currentStep = 0;
-
-            // Włącz automatyczne centrowanie podczas nawigacji
-            isMapCentered = true;
-            userMovedMap = false;
-            updateCenterButtonVisibility();
-
-            // Wyświetl trasę na mapie
-            const routeGeoJson = {
-              type: 'Feature',
-              properties: {},
-              geometry: {
-                type: 'LineString',
-                coordinates: routeData.routes[0].legs[0].points.map(point => 
-                  [point.longitude, point.latitude]
-                )
-              }
-            };
-
-            if (map.getSource('route')) {
-              map.getSource('route').setData(routeGeoJson);
-            } else {
-              map.addSource('route', {
-                type: 'geojson',
-                data: routeGeoJson
-              });
-
-              map.addLayer({
-                id: 'route',
-                type: 'line',
-                source: 'route',
-                layout: {
-                  'line-join': 'round',
-                  'line-cap': 'round'
-                },
-                paint: {
-                  'line-color': '#4CAF50',
-                  'line-width': 6
-                }
-              });
-
-              window.routeLayer = true;
-            }
-
-            // Pokaż nawigację
-            showNavigation();
-            startRouteUpdates();
-            
-            // Odtwórz powitanie nawigacji
-            speakInstruction("Rozpoczynamy nawigację");
-            
-            // Po 2 sekundach, podaj pierwszy manewr
-            setTimeout(() => {
-              if (currentRoute && currentRoute.guidance && currentRoute.guidance.instructions && currentRoute.guidance.instructions.length > 0) {
-                const firstInstruction = currentRoute.guidance.instructions[0];
-                const distance = firstInstruction.routeOffsetInMeters || 500; // Domyślnie 500m, jeśli brak danych
-                speakInstruction(formatVoiceInstruction(firstInstruction, distance));
-              }
-            }, 2000);
-          })
-          .catch(error => {
-            console.error('Błąd pobierania trasy:', error);
-            displayErrorMessage('Nie udało się zaplanować trasy');
-          });
-      }
-
-      // Wyświetlanie nawigacji
-      function showNavigation() {
-        if (!currentRoute || !currentRoute.guidance || !currentRoute.guidance.instructions) {
-          console.error("Brak instrukcji nawigacji", currentRoute);
-          return;
-        }
-
-        const instructions = currentRoute.guidance.instructions;
-        if (currentStep >= instructions.length) {
-          console.error("Indeks instrukcji poza zakresem", currentStep, instructions.length);
-          return;
-        }
-
-        const step = instructions[currentStep];
-        const nextStep = currentStep + 1 < instructions.length ? instructions[currentStep + 1] : null;
-        const distance = step.routeOffsetInMeters;
-        const eta = new Date(Date.now() + currentRoute.summary.travelTimeInSeconds * 1000);
-
-        let icon = 'fa-arrow-right';
-        let maneuver = step.message.toLowerCase();
+        if (!name) return;
         
-        if (maneuver.includes('rondo')) {
-          icon = 'fa-circle-notch';
-        } else if (maneuver.includes('lewo')) {
-          icon = 'fa-arrow-left';
-        } else if (maneuver.includes('prawo')) {
-          icon = 'fa-arrow-right';
-        } else if (maneuver.includes('prosto')) {
-          icon = 'fa-arrow-up';
-        } else if (maneuver.includes('zawróć')) {
-          icon = 'fa-arrow-down';
-        }
-
-        navigationContent.innerHTML = `
-          <div class="navigation-step">
-            <div class="navigation-icon">
-              <i class="fas ${icon}"></i>
-            </div>
-            <div class="navigation-info">
-              <div>${step.message}</div>
-              <div class="navigation-distance">${distance} m</div>
-              <div class="navigation-eta">ETA: ${eta.toLocaleTimeString()}</div>
-            </div>
-          </div>
-        `;
-
-        navigationPanel.style.display = 'block';
-      }
-
-      // Aktualizacja nawigacji
-      function startRouteUpdates() {
-        if (routeUpdateInterval) {
-          clearInterval(routeUpdateInterval);
-        }
-
-        routeUpdateInterval = setInterval(() => {
-          if (!userLocationMarker || !currentRoute || !currentRoute.guidance || !currentRoute.guidance.instructions) return;
-
-          const currentPosition = userLocationMarker.getLngLat();
-          const instructions = currentRoute.guidance.instructions;
-          
-          if (currentStep >= instructions.length) return;
-          
-          const step = instructions[currentStep];
-          
-          // Sprawdź czy użytkownik zbliża się do następnego kroku
-          if (step.point && step.point.latitude && step.point.longitude) {
-            const distanceToNextPoint = calculateDistance(
-              currentPosition.lat,
-              currentPosition.lng,
-              step.point.latitude,
-              step.point.longitude
-            );
-            
-            // Jeśli jesteśmy blisko następnego punktu nawigacji (20 metrów)
-            if (distanceToNextPoint < 20) {
-              currentStep++;
-              
-              // Sprawdź czy to koniec trasy
-              if (currentStep >= instructions.length) {
-                clearInterval(routeUpdateInterval);
-                navigationPanel.style.display = 'none';
-                
-                // Informacja o dotarciu do celu
-                speakInstruction("Dotarłeś do celu");
-                displayErrorMessage('Dotarłeś do celu!');
-                
-                // Usuń trasę z mapy
-                if (window.routeLayer) {
-                  map.removeLayer('route');
-                  map.removeSource('route');
-                  window.routeLayer = false;
-                }
-                
-                // Usuń marker celu
-                if (window.destinationMarker) {
-                  window.destinationMarker.remove();
-                  window.destinationMarker = null;
-                }
-              } else {
-                showNavigation();
-                
-                // Informuj o następnym manewrze
-                const nextStep = instructions[currentStep];
-                if (nextStep) {
-                  const distance = nextStep.routeOffsetInMeters || 500;
-                  setTimeout(() => {
-                    speakInstruction(formatVoiceInstruction(nextStep, distance));
-                  }, 1000);
-                }
-              }
-            } else {
-              // Aktualizuj odległość w panelu nawigacyjnym
-              updateNavigationPanel(distanceToNextPoint);
-            }
+        const favorite = {
+          id: Date.now().toString(),
+          name,
+          position: {
+            lat: position.lat,
+            lng: position.lng
           }
-        }, 1000);
-      }
-
-      // Obliczanie odległości między punktami
-      function calculateDistance(lat1, lon1, lat2, lon2) {
-        const R = 6371e3;
-        const φ1 = lat1 * Math.PI/180;
-        const φ2 = lat2 * Math.PI/180;
-        const Δφ = (lat2-lat1) * Math.PI/180;
-        const Δλ = (lon2-lon1) * Math.PI/180;
-
-        const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-                Math.cos(φ1) * Math.cos(φ2) *
-                Math.sin(Δλ/2) * Math.sin(Δλ/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-        return R * c;
-      }
-
-      // Zamykanie nawigacji
-      navigationClose.addEventListener('click', () => {
-        navigationPanel.style.display = 'none';
-        if (routeUpdateInterval) {
-          clearInterval(routeUpdateInterval);
-        }
-        currentRoute = null;
+        };
+        
+        favoriteLocations.push(favorite);
+        localStorage.setItem('favoriteLocations', JSON.stringify(favoriteLocations));
+        
+        renderFavorites();
+        updateFavoritesOnMap();
       });
 
-      // Obsługa geolokalizacji
-      function startUserLocationTracking() {
-        if (!navigator.geolocation) {
-          displayErrorMessage("Twoja przeglądarka nie obsługuje geolokalizacji.");
-          return;
-        }
-
-        // Obsługa zdarzenia zoom - ważna dla stabilności markerów
-        map.on('zoom', handleZoom);
-        map.on('move', handleMapMove);
-        map.on('moveend', handleMapMoveEnd);
-
-        // Opcje geolokalizacji z maksymalną dokładnością
-        const options = {
-          enableHighAccuracy: true,
-          maximumAge: 0,
-          timeout: 10000
-        };
-
-        // Rozpocznij śledzenie lokalizacji
-        userWatchId = navigator.geolocation.watchPosition(
-          updateUserLocation,
-          handleLocationError,
-          options
-        );
+      // Renderowanie listy ulubionych miejsc
+      function renderFavorites() {
+        favoritesList.innerHTML = '';
         
-        // Domyślnie włączamy obrót mapy
-        mapRotationEnabled = true;
-        rotationToggle.checked = true;
-      }
-
-      // Obsługa zmiany zooma mapy
-      function handleZoom() {
-        // Tylko aktualizujemy rozmiar okręgu dokładności
-        if (userAccuracyCircle && userAccuracyCircle.getElement() && window.lastAccuracy) {
-          const pixelSize = window.lastAccuracy / 0.075 / Math.pow(2, map.getZoom());
-          userAccuracyCircle.getElement().style.width = `${pixelSize}px`;
-          userAccuracyCircle.getElement().style.height = `${pixelSize}px`;
-        }
-      }
-
-      // Obsługa ruchu mapy
-      function handleMapMove(e) {
-        if (e.originalEvent) {
-          lastMapMoveTime = Date.now();
-          userMovedMap = true;
-          isMapCentered = false;
-          updateCenterButtonVisibility();
-        }
-      }
-
-      // Obsługa zakończenia ruchu mapy
-      function handleMapMoveEnd() {
-        // Stabilizacja pozycji markerów po zakończeniu ruchu mapy
-        if (userLocationMarker && lastPosition) {
-          userLocationMarker.setLngLat([lastPosition[0], lastPosition[1]]);
-        }
-        
-        if (userAccuracyCircle && lastPosition) {
-          userAccuracyCircle.setLngLat([lastPosition[0], lastPosition[1]]);
-        }
-      }
-
-      // Płynne aktualizowanie pozycji markera
-      function animatePositionUpdate() {
-        if (!targetPosition || !userLocationMarker) {
-          animationFrameId = requestAnimationFrame(animatePositionUpdate);
+        if (favoriteLocations.length === 0) {
+          favoritesList.innerHTML = '<div style="padding: 10px;">Brak ulubionych miejsc</div>';
           return;
         }
         
-        const now = Date.now();
-        const elapsed = now - lastUpdateTime;
-        
-        if (!currentAnimatedPosition) {
-          currentAnimatedPosition = userLocationMarker.getLngLat();
-        }
-        
-        // Płynna interpolacja pozycji (easing)
-        const t = Math.min(1, elapsed / 300); // 300ms dla płynnego przejścia
-        const easingT = t * (2 - t); // Funkcja wygładzająca
-        
-        const newLng = currentAnimatedPosition.lng + (targetPosition.lng - currentAnimatedPosition.lng) * easingT;
-        const newLat = currentAnimatedPosition.lat + (targetPosition.lat - currentAnimatedPosition.lat) * easingT;
-        
-        // Aktualizacja markera
-        userLocationMarker.setLngLat([newLng, newLat]);
-        
-        // Aktualizacja okręgu dokładności
-        if (userAccuracyCircle) {
-          userAccuracyCircle.setLngLat([newLng, newLat]);
-        }
-        
-        // Płynna aktualizacja obrotu
-        if (userHeading !== null && mapRotationEnabled && isMapCentered && !userMovedMap) {
-          const currentBearing = map.getBearing();
-          const targetBearing = userHeading;
+        favoriteLocations.forEach(favorite => {
+          const item = document.createElement('div');
+          item.className = 'favorite-item';
+          item.textContent = favorite.name;
           
-          // Oblicz różnicę kątów (uwzględniając przekroczenie 360 stopni)
-          let bearingDiff = targetBearing - currentBearing;
-          if (bearingDiff > 180) bearingDiff -= 360;
-          if (bearingDiff < -180) bearingDiff += 360;
+          // Przycisk usuwania
+          const deleteBtn = document.createElement('button');
+          deleteBtn.className = 'delete-btn';
+          deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+          deleteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            removeFavorite(favorite.id);
+          });
           
-          // Płynne przejście do docelowego kąta
-          const newBearing = currentBearing + bearingDiff * easingT;
+          item.appendChild(deleteBtn);
           
-          map.setBearing(newBearing);
-        }
-        
-        // Kontynuuj animację, jeśli nadal trwa
-        if (t < 1) {
-          currentAnimatedPosition = targetPosition;
-          targetPosition = null;
-          lastUpdateTime = now;
+          // Wybór ulubionego miejsca
+          item.addEventListener('click', () => {
+            selectDestination(favorite.position);
+            favoritesPanel.style.display = 'none';
+          });
           
-          // Kontynuuj nasłuchiwanie
-          animationFrameId = requestAnimationFrame(animatePositionUpdate);
-        } else {
-          // Zakończ animację
-          currentAnimatedPosition = targetPosition;
-          targetPosition = null;
-          lastUpdateTime = now;
-          
-          // Kontynuuj nasłuchiwanie
-          animationFrameId = requestAnimationFrame(animatePositionUpdate);
-        }
+          favoritesList.appendChild(item);
+        });
       }
 
-      // Rozpocznij animację
-      function startPositionAnimation() {
-        if (!animationFrameId) {
-          lastUpdateTime = Date.now();
-          animationFrameId = requestAnimationFrame(animatePositionUpdate);
-        }
+      // Usuwanie ulubionego miejsca
+      function removeFavorite(id) {
+        favoriteLocations = favoriteLocations.filter(fav => fav.id !== id);
+        localStorage.setItem('favoriteLocations', JSON.stringify(favoriteLocations));
+        renderFavorites();
+        updateFavoritesOnMap();
       }
 
-      // Aktualizacja widoku mapy
-      function updateMapViewport() {
-        // Jeśli mamy trasę, upewnij się, że jest widoczna
-        if (window.routeLayer && currentRoute) {
-          // Sprawdź, czy jesteśmy w małym zoomie (poniżej 10)
-          if (map.getZoom() < 10) {
-            // Dostosuj widok, aby pokazać całą trasę
-            const bounds = new tt.LngLatBounds();
-            
-            // Dodaj punkty trasy do granic
-            if (currentRoute.legs && currentRoute.legs[0] && currentRoute.legs[0].points) {
-              currentRoute.legs[0].points.forEach(point => {
-                bounds.extend([point.longitude, point.latitude]);
-              });
-            }
-            
-            // Dodaj pozycję użytkownika
-            if (lastPosition) {
-              bounds.extend(lastPosition);
-            }
-            
-            // Ustaw bounds z odpowiednim paddingiem
-            map.fitBounds(bounds, { padding: 50 });
+      // Aktualizacja ulubionych miejsc na mapie
+      function updateFavoritesOnMap() {
+        // Usuń istniejącą warstwę
+        if (map.getLayer('favorites')) {
+          map.removeLayer('favorites');
+        }
+        
+        if (map.getSource('favorites')) {
+          map.removeSource('favorites');
+        }
+        
+        // Stwórz źródło danych GeoJSON
+        const features = favoriteLocations.map(favorite => ({
+          type: 'Feature',
+          properties: {
+            name: favorite.name,
+            id: favorite.id
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: [favorite.position.lng, favorite.position.lat]
           }
-        }
-      }
-
-      // Aktualizacja lokalizacji użytkownika
-      function updateUserLocation(position) {
-        const { latitude, longitude, accuracy, heading } = position.coords;
+        }));
         
-        // Zapisz dokładność do późniejszego użycia
-        window.lastAccuracy = accuracy;
+        // Dodaj źródło danych
+        map.addSource('favorites', {
+          type: 'geojson',
+          data: {
+            type: 'FeatureCollection',
+            features
+          }
+        });
         
-        if (accuracy > 100) {
-          return;
-        }
-
-        const userLocation = [longitude, latitude];
-        const currentTime = Date.now();
-
-        // Utwórz lub aktualizuj marker lokalizacji
-        if (!userLocationMarker) {
-          // Tworzenie strzałki jako element DOM
-          const el = document.createElement('div');
-          el.className = 'user-direction-marker';
+        // Dodaj warstwę
+        map.addLayer({
+          id: 'favorites',
+          type: 'symbol',
+          source: 'favorites',
+          layout: {
+            'icon-image': 'marker-15',
+            'icon-size': 1.5,
+            'text-field': ['get', 'name'],
+            'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+            'text-offset': [0, 1.5],
+            'text-anchor': 'top'
+          },
+          paint: {
+            'text-color': '#0000ff',
+            'text-halo-color': '#ffffff',
+            'text-halo-width': 1
+          }
+        });
+        
+        // Dodaj obsługę kliknięcia
+        map.on('click', 'favorites', (e) => {
+          const properties = e.features[0].properties;
+          const coordinates = e.features[0].geometry.coordinates.slice();
           
-          // Utwórz marker TomTom
-          userLocationMarker = new tt.Marker({element: el})
-            .setLngLat(userLocation)
+          // Utwórz popup
+          new tt.Popup()
+            .setLngLat(coordinates)
+            .setHTML(`
+              <div style="padding: 10px;">
+                <h3 style="margin: 0 0 10px 0;">${properties.name}</h3>
+                <button id="navigate-favorite" style="padding: 5px 10px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">Nawiguj</button>
+              </div>
+            `)
             .addTo(map);
-
-          // Po pierwszym pobraniu lokalizacji, wycentruj mapę
-          map.flyTo({
-            center: userLocation,
-            zoom: 19,
-            duration: 1000,
-            bearing: heading || 0
-          });
-          
-          isMapCentered = true;
-          userMovedMap = false;
-          updateCenterButtonVisibility();
-        } else {
-          // Aktualizuj pozycję markera
-          userLocationMarker.setLngLat(userLocation);
-        }
-
-        // Aktualizacja kierunku - obracamy mapę, nie marker
-        if (heading !== null && heading !== undefined) {
-          userHeading = heading;
-        } else if (lastPosition && (currentTime - lastPositionTimestamp) > 200) {
-          if (calculateDistance(lastPosition[1], lastPosition[0], latitude, longitude) > 2) {
-            const calculatedHeading = calculateHeading(
-              lastPosition[1], lastPosition[0], 
-              latitude, longitude
-            );
-            userHeading = calculatedHeading;
-          }
-        }
-
-        // Zapisz aktualną pozycję
-        lastPosition = [longitude, latitude];
-        lastPositionTimestamp = currentTime;
-
-        // Aktualizuj okrąg dokładności
-        updateAccuracyCircle(userLocation, accuracy);
-
-        // Aktualizuj obrót mapy aby strzałka pokazywała w górę
-        if (isMapCentered && !userMovedMap && mapRotationEnabled && userHeading !== null) {
-          map.easeTo({
-            center: userLocation,
-            bearing: userHeading,
-            duration: 300
-          });
-        }
+            
+          // Obsługa przycisku w popup
+          setTimeout(() => {
+            document.getElementById('navigate-favorite').addEventListener('click', () => {
+              const favorite = favoriteLocations.find(f => f.id === properties.id);
+              if (favorite) {
+                selectDestination(favorite.position);
+              }
+            });
+          }, 100);
+        });
         
-        // Aktualizacja nawigacji głosowej, jeśli trasa jest aktywna
-        if (currentRoute && currentRoute.guidance && currentRoute.guidance.instructions) {
-          updateVoiceGuidance(userLocation);
-        }
+        // Zmień kursor przy najeździe na ulubione miejsce
+        map.on('mouseenter', 'favorites', () => {
+          map.getCanvas().style.cursor = 'pointer';
+        });
+        
+        map.on('mouseleave', 'favorites', () => {
+          map.getCanvas().style.cursor = '';
+        });
       }
 
-      // Aktualizacja okręgu dokładności
-      function updateAccuracyCircle(userLocation, accuracy) {
-        if (!userAccuracyCircle) {
-          // Utwórz element DOM dla okręgu dokładności
-          const el = document.createElement('div');
-          el.className = 'user-accuracy-circle';
+      // Ładowanie fotoradarów i kontroli prędkości
+      function loadSpeedCameras() {
+        // Symulacja danych - w rzeczywistej aplikacji użylibyśmy API
+        const speedCameras = [
+          // Przykładowe dane - w rzeczywistej aplikacji pobralibyśmy te informacje z API
+          { type: "speed_camera", lat: 52.2297, lng: 21.0122, description: "Fotoradar stacjonarny" },
+          { type: "speed_control", lat: 52.2350, lng: 21.0091, description: "Częsta kontrola prędkości" }
+        ];
+        
+        // Przygotowanie źródła danych GeoJSON
+        const features = speedCameras.map(camera => ({
+          type: 'Feature',
+          properties: {
+            type: camera.type,
+            description: camera.description
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: [camera.lng, camera.lat]
+          }
+        }));
+        
+        // Dodaj źródło danych
+        map.addSource('speedcams', {
+          type: 'geojson',
+          data: {
+            type: 'FeatureCollection',
+            features
+          }
+        });
+        
+        // Dodaj warstwę
+        map.addLayer({
+          id: 'speedcams',
+          type: 'symbol',
+          source: 'speedcams',
+          layout: {
+            'icon-image': 'marker-15',
+            'icon-size': 1.2,
+            'icon-allow-overlap': true
+          },
+          paint: {
+            'icon-color': [
+              'match',
+              ['get', 'type'],
+              'speed_camera', '#ff0000',
+              'speed_control', '#ffa500',
+              '#ff0000'
+            ]
+          }
+        });
+        
+        // Dodaj obsługę kliknięcia
+        map.on('click', 'speedcams', (e) => {
+          const properties = e.features[0].properties;
+          const coordinates = e.features[0].geometry.coordinates.slice();
           
-          userAccuracyCircle = new tt.Marker({
-            element: el,
-            anchor: 'center'
-          })
-            .setLngLat(userLocation)
+          // Utwórz popup
+          new tt.Popup()
+            .setLngLat(coordinates)
+            .setHTML(`
+              <div style="padding: 10px;">
+                <h3 style="margin: 0 0 5px 0;">${properties.type === 'speed_camera' ? 'Fotoradar' : 'Kontrola prędkości'}</h3>
+                <p style="margin: 0;">${properties.description}</p>
+              </div>
+            `)
             .addTo(map);
-          
-          // Upewnij się, że okrąg jest pod markerem
-          userAccuracyCircle.getElement().style.zIndex = "90";
-        } else {
-          userAccuracyCircle.setLngLat(userLocation);
-        }
-
-        // Ustaw rozmiar okręgu dokładności
-        if (userAccuracyCircle.getElement()) {
-          const pixelSize = accuracy / 0.075 / Math.pow(2, map.getZoom());
-          userAccuracyCircle.getElement().style.width = `${pixelSize}px`;
-          userAccuracyCircle.getElement().style.height = `${pixelSize}px`;
-        }
+        });
+        
+        // Zmień kursor przy najeździe
+        map.on('mouseenter', 'speedcams', () => {
+          map.getCanvas().style.cursor = 'pointer';
+        });
+        
+        map.on('mouseleave', 'speedcams', () => {
+          map.getCanvas().style.cursor = '';
+        });
+        
+        speedcamsLayer = true;
       }
 
-      // Obsługa błędów geolokalizacji
-      function handleLocationError(error) {
-        console.error('Błąd geolokalizacji:', error);
+      // Ładowanie prac drogowych
+      function loadRoadworks() {
+        // W rzeczywistej aplikacji użylibyśmy API Overpass
+        // Symulacja danych
+        const roadworks = [
+          // Przykładowe dane
+          { lat: 52.2340, lng: 21.0180, description: "Przebudowa drogi, zwężenie do jednego pasa", endDate: "2023-12-31" },
+          { lat: 52.2280, lng: 21.0050, description: "Remont chodnika", endDate: "2023-11-15" }
+        ];
         
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            displayErrorMessage(messages.permissionDenied);
-            break;
-          case error.POSITION_UNAVAILABLE:
-            displayErrorMessage(messages.notAvailable);
-            break;
-          case error.TIMEOUT:
-            displayErrorMessage(messages.timeout);
-            break;
-          default:
-            displayErrorMessage(messages.default);
-        }
-
-        // Spróbuj ponownie po 5 sekundach
-        setTimeout(() => {
-          if (userWatchId === null) {
-            startUserLocationTracking();
+        // Przygotowanie źródła danych GeoJSON
+        const features = roadworks.map(work => ({
+          type: 'Feature',
+          properties: {
+            description: work.description,
+            endDate: work.endDate
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: [work.lng, work.lat]
           }
-        }, 5000);
-      }
-
-      // Wyświetlanie komunikatu o błędzie
-      function displayErrorMessage(message) {
-        messageBoxContent.textContent = message;
-        messageBox.removeAttribute('hidden');
+        }));
         
-        // Dodaj przycisk "Spróbuj ponownie"
-        const retryButton = document.createElement('button');
-        retryButton.textContent = 'Spróbuj ponownie';
-        retryButton.style.marginLeft = '10px';
-        retryButton.style.padding = '5px 10px';
-        retryButton.style.cursor = 'pointer';
+        // Dodaj źródło danych
+        map.addSource('roadworks', {
+          type: 'geojson',
+          data: {
+            type: 'FeatureCollection',
+            features
+          }
+        });
         
-        retryButton.onclick = function() {
-          messageBox.setAttribute('hidden', true);
-          startUserLocationTracking();
-        };
+        // Dodaj warstwę
+        map.addLayer({
+          id: 'roadworks',
+          type: 'symbol',
+          source: 'roadworks',
+          layout: {
+            'icon-image': 'marker-15',
+            'icon-size': 1.2,
+            'icon-allow-overlap': true
+          },
+          paint: {
+            'icon-color': '#ffff00'
+          }
+        });
         
-        // Usuń poprzedni przycisk jeśli istnieje
-        const oldButton = messageBox.querySelector('button');
-        if (oldButton) {
-          oldButton.remove();
-        }
-        
-        messageBox.appendChild(retryButton);
-      }
-
-      // Zamykanie komunikatu o błędzie
-      messageBoxClose.addEventListener('click', function() {
-        messageBox.setAttribute('hidden', true);
-      });
-
-      // Obsługa przycisku centrowania
-      centerButton.addEventListener('click', function() {
-        if (userLocationMarker) {
-          const userLocation = userLocationMarker.getLngLat();
-          const bearing = mapRotationEnabled ? userHeading : 0;
+        // Dodaj obsługę kliknięcia
+        map.on('click', 'roadworks', (e) => {
+          const properties = e.features[0].properties;
+          const coordinates = e.features[0].geometry.coordinates.slice();
           
-          map.flyTo({
-            center: userLocation,
-            zoom: 19,
-            bearing: bearing,
-            duration: 700
-          });
-          
-          isMapCentered = true;
-          userMovedMap = false;
-          updateCenterButtonVisibility();
-        } else {
-          startUserLocationTracking();
-        }
-      });
-
-      // Aktualizacja widoczności przycisku centrowania
-      function updateCenterButtonVisibility() {
-        if (isMapCentered && !userMovedMap) {
-          centerButton.classList.remove('visible');
-        } else {
-          centerButton.classList.add('visible');
-        }
+          // Utwórz popup
+          new tt.Popup()
+            .setLngLat(coordinates)
+            .setHTML(`
+              <div style="padding: 10px;">
+                <h3 style="margin: 0 0 5px 0;">Prace drogowe</h3>
+                <p style="margin: 0 0 5px 0;">${properties.description}</p>
+                <p style="margin: 0;"><strong>Planowany koniec:</strong> ${properties.endDate}</p>
+              </div>
+            `)
+            .addTo(map);
+        });
+        
+        // Zmień kursor przy najeździe
+        map.on('mouseenter', 'roadworks', () => {
+          map.getCanvas().style.cursor = 'pointer';
+        });
+        
+        map.on('mouseleave', 'roadworks', () => {
+          map.getCanvas().style.cursor = '';
+        });
+        
+        roadworksLayer = true;
       }
 
-      // Obsługa zmiany widoku mapy
-      map.on('move', function(e) {
-        if (e.originalEvent) {
-          lastMapMoveTime = Date.now();
-          userMovedMap = true;
-          isMapCentered = false;
-          updateCenterButtonVisibility();
+      // Ładowanie punktów zainteresowania (POI)
+      function loadPointsOfInterest() {
+        // W rzeczywistej aplikacji użylibyśmy Overpass API
+        // Przykładowy kod zapytania Overpass:
+        // const query = `
+        //   [out:json];
+        //   (
+        //     node["amenity"](around:1000,${lat},${lng});
+        //     node["shop"](around:1000,${lat},${lng});
+        //   );
+        //   out;
+        // `;
+        
+        // Symulacja danych
+        const pois = [
+          { lat: 52.2320, lng: 21.0100, name: "Restauracja Pod Jabłonią", type: "restaurant" },
+          { lat: 52.2300, lng: 21.0150, name: "Stacja paliw BP", type: "fuel" },
+          { lat: 52.2270, lng: 21.0080, name: "Sklep spożywczy", type: "shop" }
+        ];
+        
+        // Przygotowanie źródła danych GeoJSON
+        const features = pois.map(poi => ({
+          type: 'Feature',
+          properties: {
+            name: poi.name,
+            type: poi.type
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: [poi.lng, poi.lat]
+          }
+        }));
+        
+        // Dodaj źródło danych
+        map.addSource('pois', {
+          type: 'geojson',
+          data: {
+            type: 'FeatureCollection',
+            features
+          }
+        });
+        
+        // Dodaj warstwę
+        map.addLayer({
+          id: 'pois',
+          type: 'symbol',
+          source: 'pois',
+          layout: {
+            'icon-image': 'marker-15',
+            'icon-size': 1,
+            'text-field': ['get', 'name'],
+            'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+            'text-offset': [0, 1.5],
+            'text-anchor': 'top'
+          },
+          paint: {
+            'text-color': '#333333',
+            'text-halo-color': '#ffffff',
+            'text-halo-width': 1
+          }
+        });
+        
+        // Dodaj obsługę kliknięcia
+        map.on('click', 'pois', (e) => {
+          const properties = e.features[0].properties;
+          const coordinates = e.features[0].geometry.coordinates.slice();
+          
+          // Utwórz popup
+          new tt.Popup()
+            .setLngLat(coordinates)
+            .setHTML(`
+              <div style="padding: 10px;">
+                <h3 style="margin: 0 0 5px 0;">${properties.name}</h3>
+                <p style="margin: 0 0 5px 0;">Typ: ${properties.type}</p>
+                <button id="navigate-poi" style="padding: 5px 10px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">Nawiguj</button>
+              </div>
+            `)
+            .addTo(map);
+            
+          // Obsługa przycisku w popup
+          setTimeout(() => {
+            document.getElementById('navigate-poi').addEventListener('click', () => {
+              selectDestination({lat: coordinates[1], lng: coordinates[0]});
+            });
+          }, 100);
+        });
+        
+        // Zmień kursor przy najeździe
+        map.on('mouseenter', 'pois', () => {
+          map.getCanvas().style.cursor = 'pointer';
+        });
+        
+        map.on('mouseleave', 'pois', () => {
+          map.getCanvas().style.cursor = '';
+        });
+        
+        poiLayer = true;
+      }
+
+      // Wyciszanie dźwięków w tle podczas nawigacji głosowej
+      function lowerBackgroundAudio() {
+        // Jeśli już wyciszone, nie rób nic
+        if (isAudioLowered) return;
+        
+        console.log("Wyciszanie dźwięków w tle...");
+        
+        // Zbierz wszystkie elementy audio i video na stronie
+        const mediaElements = [
+          ...document.querySelectorAll('audio:not([data-navigation-voice])'),
+          ...document.querySelectorAll('video')
+        ];
+        
+        if (mediaElements.length === 0) {
+          console.log("Nie znaleziono elementów audio/video do wyciszenia");
+          return;
         }
-      });
+        
+        // Zapisz obecną głośność i elementy
+        backgroundAudioElements = mediaElements;
+        originalVolumeOfBackgroundAudio = mediaElements.map(el => el.volume);
+        
+        // Wycisz każdy element
+        mediaElements.forEach(el => {
+          // Zapisz aktualną głośność i zmniejsz do 20%
+          try {
+            if (el.volume > 0.2) {
+              const originalVolume = el.volume;
+              el.volume = 0.2; // Zmniejsz głośność do 20%
+              console.log(`Zmniejszono głośność z ${originalVolume} do ${el.volume}`);
+            }
+          } catch (error) {
+            console.error("Błąd podczas zmiany głośności:", error);
+          }
+        });
+        
+        isAudioLowered = true;
+      }
+
+      // Przywracanie głośności
+      function restoreBackgroundAudio() {
+        // Jeśli nie są wyciszone, nie rób nic
+        if (!isAudioLowered) return;
+        
+        console.log("Przywracanie oryginalnej głośności...");
+        
+        // Przywróć głośność każdego elementu
+        backgroundAudioElements.forEach((el, index) => {
+          if (index < originalVolumeOfBackgroundAudio.length) {
+            try {
+              const targetVolume = originalVolumeOfBackgroundAudio[index];
+              el.volume = targetVolume;
+              console.log(`Przywrócono głośność do ${targetVolume}`);
+            } catch (error) {
+              console.error("Błąd podczas przywracania głośności:", error);
+            }
+          }
+        });
+        
+        isAudioLowered = false;
+      }
 
       // Funkcja do odtwarzania instrukcji głosowych
       function speakInstruction(text) {
@@ -1319,6 +1862,9 @@
         // Nie powtarzaj tej samej instrukcji zbyt często
         const now = Date.now();
         if (text === lastVoiceInstruction && now - lastVoiceTime < 10000) return;
+        
+        // Wycisz dźwięki w tle
+        lowerBackgroundAudio();
         
         // Zatrzymaj wszystkie aktualnie odtwarzane głosy
         speechSynthesis.cancel();
@@ -1336,10 +1882,58 @@
           utterance.voice = polishVoice;
         }
         
+        // Przywróć głośność po zakończeniu wypowiedzi
+        utterance.onend = function() {
+          console.log("Wypowiedź zakończona, przywracanie głośności");
+          setTimeout(restoreBackgroundAudio, 500);
+        };
+        
+        // Na wypadek błędu w odtwarzaniu
+        utterance.onerror = function(event) {
+          console.error("Błąd podczas odtwarzania głosu:", event);
+          restoreBackgroundAudio();
+        };
+        
         speechSynthesis.speak(utterance);
         
         lastVoiceInstruction = text;
         lastVoiceTime = now;
+      }
+
+      // Aktualizacja instrukcji głosowych na podstawie aktualnej pozycji
+      function updateVoiceGuidance(userLocation) {
+        if (!currentRoute || !currentRoute.guidance || !currentRoute.guidance.instructions) return;
+        
+        if (currentStep >= currentRoute.guidance.instructions.length) return;
+        
+        const currentInstruction = currentRoute.guidance.instructions[currentStep];
+        
+        if (!currentInstruction || !currentInstruction.point) return;
+        
+        // Oblicz odległość do kolejnego manewru
+        const distanceToManeuver = calculateDistance(
+          userLocation[1], userLocation[0],
+          currentInstruction.point.latitude, currentInstruction.point.longitude
+        );
+        
+        // Aktualizuj wartości dla wyświetlania i komunikatów
+        nextManeuverDistance = distanceToManeuver;
+        upcomingManeuver = currentInstruction.message;
+        
+        // Odtwórz instrukcje głosowe na podstawie odległości
+        if (distanceToManeuver <= 35) {
+          // Tuż przed manewrem (35m lub mniej)
+          speakInstruction(formatVoiceInstruction(currentInstruction, distanceToManeuver));
+        } else if (distanceToManeuver <= 150 && Math.abs(distanceToManeuver - nextManeuverDistance) > 20) {
+          // Zbliżamy się do manewru (150-35m)
+          speakInstruction(formatVoiceInstruction(currentInstruction, distanceToManeuver));
+        } else if (distanceToManeuver <= 500 && Math.abs(distanceToManeuver - nextManeuverDistance) > 50) {
+          // Manewr jest w zasięgu (500-150m)
+          speakInstruction(formatVoiceInstruction(currentInstruction, distanceToManeuver));
+        }
+        
+        // Aktualizacja panelu nawigacji
+        updateNavigationPanel(distanceToManeuver);
       }
 
       // Funkcja do formatowania instrukcji głosowej
@@ -1402,47 +1996,643 @@
         }
       }
 
-      // Aktualizacja wskazówek głosowych na podstawie aktualnej pozycji
-      function updateVoiceGuidance(userLocation) {
-        if (!currentRoute || !currentRoute.guidance || !currentRoute.guidance.instructions) return;
-        
-        if (currentStep >= currentRoute.guidance.instructions.length) return;
-        
-        const currentInstruction = currentRoute.guidance.instructions[currentStep];
-        
-        if (!currentInstruction || !currentInstruction.point) return;
-        
-        // Oblicz odległość do kolejnego manewru
-        const distanceToManeuver = calculateDistance(
-          userLocation[1], userLocation[0],
-          currentInstruction.point.latitude, currentInstruction.point.longitude
-        );
-        
-        // Aktualizuj wartości dla wyświetlania i komunikatów
-        nextManeuverDistance = distanceToManeuver;
-        upcomingManeuver = currentInstruction.message;
-        
-        // Odtwórz instrukcje głosowe na podstawie odległości
-        if (distanceToManeuver <= 35) {
-          // Tuż przed manewrem (35m lub mniej)
-          speakInstruction(formatVoiceInstruction(currentInstruction, distanceToManeuver));
-        } else if (distanceToManeuver <= 150 && Math.abs(distanceToManeuver - nextManeuverDistance) > 20) {
-          // Zbliżamy się do manewru (150-35m)
-          speakInstruction(formatVoiceInstruction(currentInstruction, distanceToManeuver));
-        } else if (distanceToManeuver <= 500 && Math.abs(distanceToManeuver - nextManeuverDistance) > 50) {
-          // Manewr jest w zasięgu (500-150m)
-          speakInstruction(formatVoiceInstruction(currentInstruction, distanceToManeuver));
-        }
-        
-        // Aktualizacja panelu nawigacji
-        updateNavigationPanel(distanceToManeuver);
-      }
-
       // Aktualizacja panelu nawigacji
       function updateNavigationPanel(distanceToManeuver) {
         const distanceElement = document.querySelector('.navigation-distance');
         if (distanceElement) {
           distanceElement.textContent = `${Math.round(distanceToManeuver)} m`;
+        }
+      }
+
+      // Aktualizacja lokalizacji użytkownika
+      function updateUserLocation(position) {
+        const { latitude, longitude, accuracy, heading, speed } = position.coords;
+        
+        // Zapisz dokładność do późniejszego użycia
+        window.lastAccuracy = accuracy;
+        
+        // Dla debugowania
+        console.log("GPS update - heading:", heading, "accuracy:", accuracy, "coords:", latitude, longitude, "speed:", speed);
+        
+        // Aktualizacja prędkości
+        updateSpeedIndicator(speed, latitude, longitude);
+        
+        // Filtrujemy odczyty z niską dokładnością
+        // Na telefonach często początkowe odczyty mają bardzo niską dokładność
+        if (accuracy > 500) {
+          console.warn("Niska dokładność GPS:", accuracy, "m - czekam na lepszy sygnał");
+          
+          // Jeśli jeszcze nie mamy markera, to wyświetlamy pozycję z niską dokładnością
+          // ale komunikujemy użytkownikowi, że dokładność jest niska
+          if (!userLocationMarker) {
+            displayErrorMessage("Niska dokładność GPS (" + Math.round(accuracy) + "m). Poczekaj na lepszy sygnał.");
+            
+            // Tworzymy marker mimo wszystko, aby użytkownik widział przybliżoną lokalizację
+            createUserMarker(latitude, longitude);
+            
+            // Większy okrąg dokładności
+            updateAccuracyCircle([longitude, latitude], accuracy);
+            
+            // Zapisz pozycję (ale jej nie używaj do nawigacji)
+            lastPosition = [longitude, latitude];
+            lastPositionTimestamp = Date.now();
+          }
+          return;
+        }
+
+        const userLocation = [longitude, latitude];
+        const currentTime = Date.now();
+
+        // Utwórz lub aktualizuj marker lokalizacji
+        if (!userLocationMarker) {
+          createUserMarker(latitude, longitude);
+        } else {
+          // Ustaw lokalizację dla markera
+          userLocationMarker.setLngLat(userLocation);
+          console.log("Zaktualizowano pozycję markera");
+        }
+
+        // Aktualizacja kierunku - rotate marker
+        if (heading !== null && heading !== undefined) {
+          // Obracamy strzałkę zgodnie z kierunkiem
+          userHeading = heading;
+          if (userLocationMarker && userLocationMarker.getElement()) {
+            userLocationMarker.getElement().style.transform = `rotate(${heading}deg)`;
+            console.log("Obrócono strzałkę:", heading);
+          }
+        } else if (lastPosition && (currentTime - lastPositionTimestamp) > 200) {
+          // Oblicz kierunek na podstawie przemieszczenia jeśli brak odczytu z kompasu
+          if (calculateDistance(lastPosition[1], lastPosition[0], latitude, longitude) > 2) {
+            const calculatedHeading = calculateHeading(
+              lastPosition[1], lastPosition[0], 
+              latitude, longitude
+            );
+            userHeading = calculatedHeading;
+            
+            // Obracamy strzałkę zgodnie z kierunkiem
+            if (userLocationMarker && userLocationMarker.getElement()) {
+              userLocationMarker.getElement().style.transform = `rotate(${calculatedHeading}deg)`;
+              console.log("Obrócono strzałkę (obliczone):", calculatedHeading);
+            }
+          }
+        }
+
+        // Zapisz aktualną pozycję
+        lastPosition = [longitude, latitude];
+        lastPositionTimestamp = currentTime;
+
+        // Aktualizuj okrąg dokładności
+        updateAccuracyCircle(userLocation, accuracy);
+
+        // Aktualizuj obrót mapy aby strzałka pokazywała w górę - płynniejsze na telefonach
+        if (isMapCentered && mapRotationEnabled && userHeading !== null) {
+          // Używamy płynniejszego obrotu z mniejszą wartością duration dla telefonów
+          const duration = userMovedMap ? 700 : 300;
+          map.easeTo({
+            center: userLocation,
+            bearing: userHeading,
+            duration: duration
+          });
+          
+          // Reset flagi ruchu użytkownika po wykonaniu animacji
+          if (userMovedMap) {
+            setTimeout(() => {
+              userMovedMap = false;
+            }, duration + 100);
+          }
+        }
+        
+        // Aktualizacja nawigacji głosowej, jeśli trasa jest aktywna
+        if (currentRoute && currentRoute.guidance && currentRoute.guidance.instructions) {
+          updateVoiceGuidance(userLocation);
+        }
+        
+        // Aktualizuj faktyczne ograniczenie prędkości na podstawie pozycji
+        updateRealSpeedLimit(latitude, longitude);
+      }
+      
+      // Funkcja tworząca marker użytkownika
+      function createUserMarker(latitude, longitude) {
+        // Tworzenie strzałki jako element DOM
+        const el = document.createElement('div');
+        el.className = 'user-direction-marker';
+        
+        // Utwórz marker TomTom
+        userLocationMarker = new tt.Marker({
+          element: el,
+          anchor: 'center',
+          rotationAlignment: 'viewport' // Zmiana z 'map' na 'viewport' - lepsze działanie na urządzeniach mobilnych
+        })
+          .setLngLat([longitude, latitude])
+          .addTo(map);
+
+        // Po pierwszym pobraniu lokalizacji, wycentruj mapę i obróć ją zgodnie z kierunkiem ruchu
+        map.flyTo({
+          center: [longitude, latitude],
+          zoom: 18,
+          duration: 1000,
+          bearing: userHeading || 0
+        });
+        
+        console.log("Utworzono marker użytkownika");
+        isMapCentered = true;
+        userMovedMap = false;
+        
+        // Ukryj komunikat o uruchamianiu lokalizacji
+        messageBox.setAttribute('hidden', true);
+        
+        // Załaduj ulubione miejsca i rzeczywiste ograniczenia prędkości
+        setTimeout(() => {
+          if (favoriteLocations.length > 0) {
+            updateFavoritesOnMap();
+          }
+          
+          // Pobierz rzeczywiste ograniczenia prędkości
+          updateRealSpeedLimit(latitude, longitude);
+        }, 1000);
+      }
+
+      // Mapa jest w pełni załadowana
+      map.on('load', function() {
+        console.log("Mapa załadowana");
+        
+        // Dodanie niestandardowego markera do mapy
+        map.loadImage('https://api.tomtom.com/maps-sdk-for-web/cdn/static/pictures/poi.png', function(error, image) {
+          if (error) throw error;
+          map.addImage('marker-custom', image);
+        });
+        
+        // Włącz śledzenie lokalizacji
+        startUserLocationTracking();
+        
+        // Po załadowaniu mapy, pobierz ulubione miejsca z localStorage
+        if (favoriteLocations.length > 0) {
+          // Odrocz, aby mapa się w pełni załadowała
+          setTimeout(updateFavoritesOnMap, 1000);
+        }
+      });
+
+      // Obsługa geolokalizacji
+      function startUserLocationTracking() {
+        if (!navigator.geolocation) {
+          displayErrorMessage("Twoja przeglądarka nie obsługuje geolokalizacji.");
+          return;
+        }
+
+        console.log("Uruchamiam śledzenie lokalizacji");
+
+        // Obsługa zdarzenia zoom - ważna dla stabilności markerów
+        map.on('zoom', handleZoom);
+        map.on('move', handleMapMove);
+        map.on('moveend', handleMapMoveEnd);
+
+        // Opcje geolokalizacji z maksymalną dokładnością
+        const options = {
+          enableHighAccuracy: true,
+          maximumAge: 0,
+          timeout: 30000  // Zwiększamy timeout do 30 sekund
+        };
+
+        // Pokaż informację o uruchamianiu lokalizacji
+        displayErrorMessage("Uruchamianie lokalizacji...");
+        
+        // Najpierw spróbujmy uzyskać jednorazową pozycję, aby szybciej ustawić mapę
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            console.log("Otrzymano początkową pozycję");
+            // Aktualizuj mapę na podstawie początkowej pozycji
+            updateUserLocation(position);
+            
+            // Rozpocznij ciągłe śledzenie
+            startContinuousTracking(options);
+          },
+          (error) => {
+            console.error("Błąd podczas uzyskiwania początkowej pozycji:", error);
+            // Mimo błędu, rozpocznij ciągłe śledzenie
+            startContinuousTracking(options);
+          },
+          { ...options, timeout: 10000 } // Krótszy timeout dla pierwszej próby
+        );
+      }
+      
+      // Funkcja do ciągłego śledzenia lokalizacji
+      function startContinuousTracking(options) {
+        // Rozpocznij śledzenie lokalizacji
+        try {
+          if (userWatchId) {
+            navigator.geolocation.clearWatch(userWatchId);
+          }
+          
+          // Dodanie dodatkowych opcji dla urządzeń mobilnych
+          const mobileOptions = {
+            ...options,
+            // Na urządzeniach mobilnych częściej aktualizujemy pozycję
+            maximumAge: 0
+          };
+          
+          userWatchId = navigator.geolocation.watchPosition(
+            updateUserLocation,
+            handleLocationError,
+            mobileOptions
+          );
+          
+          // Domyślnie włączamy obrót mapy - bardzo ważne na telefonie
+          mapRotationEnabled = true;
+          rotationToggle.checked = true;
+          
+          console.log("Rozpoczęto ciągłe śledzenie lokalizacji, ID:", userWatchId);
+        } catch (e) {
+          console.error("Błąd podczas uruchamiania geolokalizacji:", e);
+          displayErrorMessage("Błąd podczas uruchamiania lokalizacji: " + e.message);
+        }
+      }
+
+      // Aktualizacja widoczności przycisku centrowania
+      function updateCenterButtonVisibility() {
+        if (isMapCentered && !userMovedMap) {
+          centerButton.classList.remove('visible');
+        } else {
+          centerButton.classList.add('visible');
+        }
+      }
+
+      // Obsługa przycisku centrowania
+      centerButton.addEventListener('click', function() {
+        console.log("Kliknięto przycisk centrowania");
+        
+        if (!userLocationMarker) {
+          console.log("Brak markera użytkownika - uruchamiam śledzenie");
+          displayErrorMessage("Uruchamiam śledzenie lokalizacji...");
+          startUserLocationTracking();
+          return;
+        }
+        
+        const userLocation = userLocationMarker.getLngLat();
+        console.log("Centrowanie na pozycji:", userLocation);
+        
+        // Używaj kierunku jeśli mapa ma być obracana, w przeciwnym razie ustaw na 0
+        const bearing = mapRotationEnabled ? userHeading || 0 : 0;
+        
+        map.flyTo({
+          center: userLocation,
+          zoom: 18,
+          bearing: bearing,
+          duration: 700
+        });
+        
+        isMapCentered = true;
+        userMovedMap = false;
+      });
+
+      // Wyświetlanie komunikatu o błędzie
+      function displayErrorMessage(message) {
+        if (!messageBox || !messageBoxContent) {
+          console.error("Elementy UI nie zostały jeszcze zainicjalizowane");
+          console.log("Komunikat:", message);
+          // Spróbuj pobrać elementy jeszcze raz
+          const msgBox = document.getElementById("messageBox");
+          const msgContent = document.getElementById("messageBoxContent");
+          
+          if (msgBox && msgContent) {
+            msgContent.textContent = message;
+            msgBox.removeAttribute('hidden');
+            return;
+          }
+          
+          // Jeśli nadal nie ma elementów, utwórz tymczasowy komunikat
+          let tempMsg = document.getElementById("tempMessage");
+          if (!tempMsg) {
+            tempMsg = document.createElement("div");
+            tempMsg.id = "tempMessage";
+            tempMsg.style.position = "absolute";
+            tempMsg.style.top = "10px";
+            tempMsg.style.left = "50%";
+            tempMsg.style.transform = "translateX(-50%)";
+            tempMsg.style.background = "white";
+            tempMsg.style.padding = "10px";
+            tempMsg.style.borderRadius = "5px";
+            tempMsg.style.zIndex = "9999";
+            document.body.appendChild(tempMsg);
+          }
+          tempMsg.textContent = message;
+          return;
+        }
+        
+        // Standardowe wyświetlanie
+        messageBoxContent.textContent = message;
+        messageBox.removeAttribute('hidden');
+        
+        // Automatyczne ukrycie po 5 sekundach
+        setTimeout(() => {
+          if (messageBox && !messageBox.getAttribute('hidden')) {
+            messageBox.setAttribute('hidden', true);
+          }
+        }, 5000);
+      }
+
+      // Obsługa ruchu mapy
+      function handleMapMove(e) {
+        if (e.originalEvent) {
+          lastMapMoveTime = Date.now();
+          userMovedMap = true;
+          isMapCentered = false;
+        }
+      }
+
+      // Obsługa zakończenia ruchu mapy
+      function handleMapMoveEnd() {
+        // Stabilizacja pozycji markerów po zakończeniu ruchu mapy
+        if (userLocationMarker && lastPosition) {
+          userLocationMarker.setLngLat([lastPosition[0], lastPosition[1]]);
+        }
+        
+        if (userAccuracyCircle && lastPosition) {
+          userAccuracyCircle.setLngLat([lastPosition[0], lastPosition[1]]);
+        }
+      }
+
+      // Obsługa zmiany zooma mapy
+      function handleZoom() {
+        // Aktualizujemy rozmiar okręgu dokładności
+        if (userAccuracyCircle && userAccuracyCircle.getElement() && window.lastAccuracy) {
+          const pixelSize = window.lastAccuracy / 0.075 / Math.pow(2, map.getZoom());
+          userAccuracyCircle.getElement().style.width = `${pixelSize}px`;
+          userAccuracyCircle.getElement().style.height = `${pixelSize}px`;
+        }
+      }
+
+      // Funkcja do aktualizacji wskaźnika prędkości
+      function updateSpeedIndicator(speedInMetersPerSecond, latitude, longitude) {
+        // Zabezpieczenie przed null/undefined/NaN
+        if (speedInMetersPerSecond === null || speedInMetersPerSecond === undefined || isNaN(speedInMetersPerSecond)) {
+          speedInMetersPerSecond = 0;
+        }
+        
+        // Filtrowanie wartości ujemnych (niekiedy GPS zwraca błędne odczyty)
+        if (speedInMetersPerSecond < 0) {
+          speedInMetersPerSecond = 0;
+        }
+        
+        // Konwersja m/s na km/h
+        const speedInKmh = Math.round(speedInMetersPerSecond * 3.6);
+        
+        // Aktualizacja bieżącej prędkości
+        currentSpeed = speedInKmh;
+        
+        // Aktualizacja wyświetlacza
+        speedIndicator.textContent = `${speedInKmh} km/h`;
+        
+        // Pobieranie ograniczenia prędkości z API
+        // W rzeczywistej aplikacji, moglibyśmy pobierać to z API TomTom lub innego źródła
+        // Na potrzeby demonstracji, używamy stałej wartości lub symulujemy zmiany
+        checkSpeedLimit(latitude, longitude);
+        
+        // Zmieniamy kolor wskaźnika prędkości w zależności od przekroczenia prędkości
+        if (currentSpeed > currentSpeedLimit) {
+          // Przekroczenie prędkości - czerwony
+          speedIndicator.style.backgroundColor = '#ff0000';
+        } else if (currentSpeed > currentSpeedLimit * 0.9) {
+          // Blisko limitu - pomarańczowy
+          speedIndicator.style.backgroundColor = '#ff9900';
+        } else {
+          // W normie - niebieski
+          speedIndicator.style.backgroundColor = '#0066ff';
+        }
+      }
+      
+      // Funkcja sprawdzająca ograniczenie prędkości na danej drodze
+      function checkSpeedLimit(lat, lon) {
+        // W rzeczywistej aplikacji, tutaj pobieralibyśmy dane z API (np. TomTom, Overpass)
+        // Dla demonstracji, używamy symulowanych danych
+        
+        // Symulacja zmiany ograniczenia prędkości na podstawie lokalizacji
+        // W prawdziwej aplikacji zastąpilibyśmy to API
+        const randomValue = Math.floor(Math.sin(lat * lon * 1000) * 10);
+        
+        if (randomValue < -7) {
+          setSpeedLimit(30);
+        } else if (randomValue < -3) {
+          setSpeedLimit(50);
+        } else if (randomValue < 3) {
+          setSpeedLimit(70);
+        } else if (randomValue < 7) {
+          setSpeedLimit(90);
+        } else {
+          setSpeedLimit(120);
+        }
+      }
+      
+      // Ustawienie ograniczenia prędkości
+      function setSpeedLimit(limit) {
+        if (currentSpeedLimit !== limit) {
+          currentSpeedLimit = limit;
+          speedLimit.textContent = limit;
+          
+          // Zmiana koloru obramowania w zależności od limitu
+          if (limit <= 30) {
+            speedLimit.style.borderColor = '#007aff'; // niebieski
+          } else if (limit <= 50) {
+            speedLimit.style.borderColor = '#ff0000'; // czerwony
+          } else if (limit <= 70) {
+            speedLimit.style.borderColor = '#ffcc00'; // żółty
+          } else if (limit <= 90) {
+            speedLimit.style.borderColor = '#ff6600'; // pomarańczowy
+          } else {
+            speedLimit.style.borderColor = '#666666'; // szary dla autostrad
+          }
+        }
+      }
+      
+      // Obsługa błędów geolokalizacji
+      function handleLocationError(error) {
+        console.error('Błąd geolokalizacji:', error);
+        
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            displayErrorMessage("Dostęp do lokalizacji został zablokowany. Zmień ustawienia przeglądarki, aby umożliwić geolokalizację.");
+            break;
+          case error.POSITION_UNAVAILABLE:
+            displayErrorMessage("Nie można określić Twojej lokalizacji. Upewnij się, że usługi lokalizacji są włączone.");
+            break;
+          case error.TIMEOUT:
+            displayErrorMessage("Przekroczono czas oczekiwania na lokalizację. Spróbuj ponownie.");
+            break;
+          default:
+            displayErrorMessage("Wystąpił błąd podczas określania lokalizacji: " + error.message);
+        }
+
+        // Spróbuj ponownie po 5 sekundach
+        setTimeout(() => {
+          if (userWatchId === null) {
+            startUserLocationTracking();
+          }
+        }, 5000);
+      }
+
+      // Pobieranie ograniczenia prędkości na podstawie danych drogowych
+      function updateRealSpeedLimit(latitude, longitude) {
+        // Dane z API TomTom można pobrać używając tego endpointu:
+        // https://api.tomtom.com/map/1/tile/basic/main/0/0/0.pbf?key=YOUR_API_KEY
+        
+        // Dla celów demonstracyjnych, użyjemy bardziej inteligentnej symulacji
+        // która lepiej odzwierciedla rzeczywiste ograniczenia prędkości
+        
+        // Pobierz typ drogi na podstawie współrzędnych (symulacja)
+        const roadType = determineRoadType(latitude, longitude);
+        
+        // Ustaw odpowiednie ograniczenie na podstawie typu drogi
+        switch(roadType) {
+          case 'motorway':
+            setSpeedLimit(140);
+            break;
+          case 'trunk':
+            setSpeedLimit(120);
+            break;
+          case 'primary':
+            setSpeedLimit(90);
+            break;
+          case 'secondary':
+            setSpeedLimit(70);
+            break;
+          case 'tertiary':
+            setSpeedLimit(50);
+            break;
+          case 'residential':
+            setSpeedLimit(30);
+            break;
+          case 'living_street':
+            setSpeedLimit(20);
+            break;
+          default:
+            setSpeedLimit(50); // Domyślnie 50 km/h
+        }
+        
+        // Dodaj wyświetlenie aktualnej ulicy/drogi
+        updateStreetInfo(latitude, longitude, roadType);
+      }
+      
+      // Funkcja określająca typ drogi na podstawie współrzędnych (symulacja)
+      function determineRoadType(latitude, longitude) {
+        // W rzeczywistej aplikacji, używalibyśmy API drogowego (np. TomTom lub OpenStreetMap)
+        // Tutaj symulujemy to na podstawie współrzędnych
+        
+        // Używamy kombinacji współrzędnych do symulowania różnych typów dróg
+        const latMod = Math.abs(Math.sin(latitude * 10)) * 10;
+        const lngMod = Math.abs(Math.cos(longitude * 10)) * 10;
+        const combinedValue = (latMod + lngMod) % 10;
+        
+        // Przypisujemy typ drogi na podstawie wartości
+        if (combinedValue < 1) return 'motorway';       // Autostrada
+        if (combinedValue < 2) return 'trunk';          // Droga ekspresowa
+        if (combinedValue < 3.5) return 'primary';      // Droga krajowa
+        if (combinedValue < 5) return 'secondary';      // Droga wojewódzka
+        if (combinedValue < 7) return 'tertiary';       // Droga powiatowa
+        if (combinedValue < 9) return 'residential';    // Droga miejska
+        return 'living_street';                         // Strefa zamieszkania
+      }
+      
+      // Wyświetlenie informacji o aktualnej ulicy
+      function updateStreetInfo(latitude, longitude, roadType) {
+        // Symulujemy dane o nazwie ulicy
+        const streets = {
+          'motorway': ['Autostrada A1', 'Autostrada A2', 'Autostrada A4'],
+          'trunk': ['Droga ekspresowa S7', 'Droga ekspresowa S8', 'Droga ekspresowa S5'],
+          'primary': ['Droga krajowa 7', 'Droga krajowa 8', 'Aleja Niepodległości'],
+          'secondary': ['Droga wojewódzka 123', 'Ulica Mickiewicza', 'Aleja Jana Pawła II'],
+          'tertiary': ['Ulica Kościuszki', 'Ulica Piastowska', 'Ulica Chrobrego'],
+          'residential': ['Ulica Polna', 'Ulica Kwiatowa', 'Ulica Słoneczna'],
+          'living_street': ['Osiedle Słoneczne', 'Ulica Cicha', 'Ulica Spokojna']
+        };
+        
+        // Wybierz losową nazwę ulicy z odpowiedniej kategorii
+        const streetIndex = Math.floor((latitude + longitude) * 10) % 3;
+        const streetName = streets[roadType][streetIndex];
+        
+        // Aktualizuj wyświetlanie nazwy ulicy
+        const streetDisplay = document.createElement('div');
+        streetDisplay.className = 'street-display';
+        streetDisplay.textContent = streetName;
+        streetDisplay.style.position = 'fixed';
+        streetDisplay.style.bottom = '180px';
+        streetDisplay.style.left = '50%';
+        streetDisplay.style.transform = 'translateX(-50%)';
+        streetDisplay.style.background = 'rgba(0,0,0,0.7)';
+        streetDisplay.style.color = 'white';
+        streetDisplay.style.padding = '8px 15px';
+        streetDisplay.style.borderRadius = '20px';
+        streetDisplay.style.fontFamily = 'Arial, sans-serif';
+        streetDisplay.style.fontSize = '16px';
+        streetDisplay.style.zIndex = '1000';
+        
+        // Usuń poprzedni element, jeśli istnieje
+        const oldStreetDisplay = document.getElementById('streetDisplay');
+        if (oldStreetDisplay) {
+          oldStreetDisplay.remove();
+        }
+        
+        // Dodaj ID dla łatwiejszego odnalezienia
+        streetDisplay.id = 'streetDisplay';
+        
+        // Dodaj do dokumentu
+        document.body.appendChild(streetDisplay);
+      }
+
+      // Funkcja do obliczania kierunku na podstawie dwóch punktów
+      function calculateHeading(lat1, lon1, lat2, lon2) {
+        // Konwersja stopni na radiany
+        const toRad = (val) => val * Math.PI / 180;
+        
+        // Obliczenie kierunku
+        const y = Math.sin(toRad(lon2-lon1)) * Math.cos(toRad(lat2));
+        const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
+                Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(toRad(lon2-lon1));
+        
+        let bearing = Math.atan2(y, x) * 180 / Math.PI;
+        bearing = (bearing + 360) % 360; // Normalizacja do 0-360
+        
+        return bearing;
+      }
+
+      // Funkcja do obliczania odległości między dwoma punktami
+      function calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371e3; // Promień Ziemi w metrach
+        const toRad = (val) => val * Math.PI / 180;
+        
+        const φ1 = toRad(lat1);
+        const φ2 = toRad(lat2);
+        const Δφ = toRad(lat2-lat1);
+        const Δλ = toRad(lon2-lon1);
+
+        const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                Math.cos(φ1) * Math.cos(φ2) *
+                Math.sin(Δλ/2) * Math.sin(Δλ/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+        return R * c; // Odległość w metrach
+      }
+
+      // Aktualizacja okręgu dokładności
+      function updateAccuracyCircle(position, accuracy) {
+        if (!userAccuracyCircle) {
+          // Tworzenie okręgu dokładności
+          const el = document.createElement('div');
+          el.className = 'user-accuracy-circle';
+          
+          userAccuracyCircle = new tt.Marker({
+            element: el,
+            anchor: 'center'
+          })
+            .setLngLat(position)
+            .addTo(map);
+        } else {
+          userAccuracyCircle.setLngLat(position);
+        }
+        
+        // Aktualizacja rozmiaru okręgu
+        if (userAccuracyCircle.getElement()) {
+          const pixelSize = accuracy / 0.075 / Math.pow(2, map.getZoom());
+          userAccuracyCircle.getElement().style.width = `${pixelSize}px`;
+          userAccuracyCircle.getElement().style.height = `${pixelSize}px`;
         }
       }
     </script>
