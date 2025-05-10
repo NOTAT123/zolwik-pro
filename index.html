@@ -196,11 +196,27 @@
       .user-direction-marker {
         width: 30px;
         height: 30px;
-        background-image: url('arrowup.png');
-        background-size: contain;
-        background-repeat: no-repeat;
-        background-position: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         transform-origin: center center;
+      }
+
+      /* Efekty dla SVG strzałki */
+      .user-direction-marker svg {
+        filter: drop-shadow(0px 2px 3px rgba(0, 0, 0, 0.4));
+      }
+
+      /* Animacja pulsowania dla strzałki */
+      @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+      }
+
+      /* Dodaj animację pulsowania gdy GPS jest niedokładny */
+      .low-accuracy .user-direction-marker svg {
+        animation: pulse 2s infinite ease-in-out;
       }
 
       /* Zwiększ rozmiar strzałki na telefonach dla lepszej widoczności */
@@ -1099,7 +1115,7 @@
           if (lastPosition) {
             loadReportsFromOverpass(lastPosition[1], lastPosition[0]);
           } else {
-            displayErrorMessage('Najpierw włącz lokalizację GPS');
+          displayErrorMessage('Najpierw włącz lokalizację GPS');
             e.target.checked = false;
           }
         } else {
@@ -1264,7 +1280,7 @@
           
           // Utwórz feature GeoJSON
           return {
-            type: 'Feature',
+              type: 'Feature',
             properties: {
               id: element.id,
               type: type,
@@ -1272,7 +1288,7 @@
               description: description,
               color: color
             },
-            geometry: {
+              geometry: {
               type: 'Point',
               coordinates: [element.lon, element.lat]
             }
@@ -1290,19 +1306,19 @@
         
         // Dodaj źródło danych
         map.addSource('reports', {
-          type: 'geojson',
+                type: 'geojson',
           data: {
             type: 'FeatureCollection',
             features: features
           }
-        });
-        
+              });
+
         // Dodaj warstwę
-        map.addLayer({
+              map.addLayer({
           id: 'reports',
           type: 'symbol',
           source: 'reports',
-          layout: {
+                layout: {
             'icon-image': [
               'match',
               ['get', 'type'],
@@ -1319,8 +1335,8 @@
             'text-font': ['Arial Unicode MS Bold'],
             'text-offset': [0, 1],
             'text-anchor': 'top'
-          },
-          paint: {
+                },
+                paint: {
             'text-color': ['get', 'color'],
             'text-halo-color': '#ffffff',
             'text-halo-width': 1
@@ -1516,7 +1532,7 @@
             .addTo(map);
             
           // Obsługa przycisku w popup
-          setTimeout(() => {
+                  setTimeout(() => {
             document.getElementById('navigate-favorite').addEventListener('click', () => {
               const favorite = favoriteLocations.find(f => f.id === properties.id);
               if (favorite) {
@@ -2030,14 +2046,25 @@
             // Tworzymy marker mimo wszystko, aby użytkownik widział przybliżoną lokalizację
             createUserMarker(latitude, longitude);
             
+            // Dodajemy klasę niskiej dokładności dla efektu pulsowania
+            if (userLocationMarker && userLocationMarker.getElement()) {
+              userLocationMarker.getElement().classList.add('low-accuracy');
+            }
+            
             // Większy okrąg dokładności
             updateAccuracyCircle([longitude, latitude], accuracy);
             
             // Zapisz pozycję (ale jej nie używaj do nawigacji)
             lastPosition = [longitude, latitude];
             lastPositionTimestamp = Date.now();
+          } else if (userLocationMarker && userLocationMarker.getElement()) {
+            // Jeśli już mamy marker, to tylko zaktualizujmy klasę
+            userLocationMarker.getElement().classList.add('low-accuracy');
           }
           return;
+        } else if (userLocationMarker && userLocationMarker.getElement()) {
+          // Jeśli dokładność jest wystarczająca, usuń klasę low-accuracy
+          userLocationMarker.getElement().classList.remove('low-accuracy');
         }
 
         const userLocation = [longitude, latitude];
@@ -2113,19 +2140,27 @@
       
       // Funkcja tworząca marker użytkownika
       function createUserMarker(latitude, longitude) {
-        // Tworzenie strzałki jako element DOM
-        const el = document.createElement('div');
+        // Tworzenie strzałki jako element DOM z SVG
+          const el = document.createElement('div');
         el.className = 'user-direction-marker';
+        
+        // Zamiast używać obrazka, używamy SVG wbudowanego w kod z szerszą strzałką i zaokrąglonymi rogami
+        el.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%">
+            <path d="M12 2C11.5 2 11 2.2 10.6 2.6L3 18C2.6 18.8 2.8 19.6 3.2 20.2C3.6 20.8 4.4 21 5 21H19C19.6 21 20.4 20.8 20.8 20.2C21.2 19.6 21.4 18.8 21 18L13.4 2.6C13 2.2 12.5 2 12 2Z" 
+                  fill="#0066ff" stroke="#ffffff" stroke-width="1.5" stroke-linejoin="round"/>
+          </svg>
+        `;
         
         // Utwórz marker TomTom
         userLocationMarker = new tt.Marker({
-          element: el,
+            element: el,
           anchor: 'center',
           rotationAlignment: 'viewport' // Zmiana z 'map' na 'viewport' - lepsze działanie na urządzeniach mobilnych
-        })
+          })
           .setLngLat([longitude, latitude])
-          .addTo(map);
-
+            .addTo(map);
+          
         // Po pierwszym pobraniu lokalizacji, wycentruj mapę i obróć ją zgodnie z kierunkiem ruchu
         map.flyTo({
           center: [longitude, latitude],
@@ -2285,7 +2320,7 @@
       });
 
       // Wyświetlanie komunikatu o błędzie
-      function displayErrorMessage(message) {
+      function displayErrorMessage(message, durationMs = 5000) {
         if (!messageBox || !messageBoxContent) {
           console.error("Elementy UI nie zostały jeszcze zainicjalizowane");
           console.log("Komunikat:", message);
@@ -2322,12 +2357,12 @@
         messageBoxContent.textContent = message;
         messageBox.removeAttribute('hidden');
         
-        // Automatyczne ukrycie po 5 sekundach
+        // Automatyczne ukrycie po określonym czasie
         setTimeout(() => {
           if (messageBox && !messageBox.getAttribute('hidden')) {
             messageBox.setAttribute('hidden', true);
           }
-        }, 5000);
+        }, durationMs);
       }
 
       // Obsługa ruchu mapy
@@ -2399,7 +2434,7 @@
           speedIndicator.style.backgroundColor = '#0066ff';
         }
       }
-      
+
       // Funkcja sprawdzająca ograniczenie prędkości na danej drodze
       function checkSpeedLimit(lat, lon) {
         // W rzeczywistej aplikacji, tutaj pobieralibyśmy dane z API (np. TomTom, Overpass)
@@ -2425,24 +2460,24 @@
       // Ustawienie ograniczenia prędkości
       function setSpeedLimit(limit) {
         if (currentSpeedLimit !== limit) {
-          currentSpeedLimit = limit;
-          speedLimit.textContent = limit;
-          
-          // Zmiana koloru obramowania w zależności od limitu
-          if (limit <= 30) {
-            speedLimit.style.borderColor = '#007aff'; // niebieski
-          } else if (limit <= 50) {
-            speedLimit.style.borderColor = '#ff0000'; // czerwony
-          } else if (limit <= 70) {
-            speedLimit.style.borderColor = '#ffcc00'; // żółty
-          } else if (limit <= 90) {
-            speedLimit.style.borderColor = '#ff6600'; // pomarańczowy
-          } else {
-            speedLimit.style.borderColor = '#666666'; // szary dla autostrad
+        currentSpeedLimit = limit;
+        speedLimit.textContent = limit;
+        
+        // Zmiana koloru obramowania w zależności od limitu
+        if (limit <= 30) {
+          speedLimit.style.borderColor = '#007aff'; // niebieski
+        } else if (limit <= 50) {
+          speedLimit.style.borderColor = '#ff0000'; // czerwony
+        } else if (limit <= 70) {
+          speedLimit.style.borderColor = '#ffcc00'; // żółty
+        } else if (limit <= 90) {
+          speedLimit.style.borderColor = '#ff6600'; // pomarańczowy
+        } else {
+          speedLimit.style.borderColor = '#666666'; // szary dla autostrad
           }
         }
       }
-      
+
       // Obsługa błędów geolokalizacji
       function handleLocationError(error) {
         console.error('Błąd geolokalizacji:', error);
@@ -2509,6 +2544,9 @@
         
         // Dodaj wyświetlenie aktualnej ulicy/drogi
         updateStreetInfo(latitude, longitude, roadType);
+        
+        // Pobierz rzeczywiste dane z OpenStreetMap
+        fetchOSMRoadData(latitude, longitude);
       }
       
       // Funkcja określająca typ drogi na podstawie współrzędnych (symulacja)
@@ -2531,9 +2569,30 @@
         return 'living_street';                         // Strefa zamieszkania
       }
       
+      // Tłumacz nazwy kategorii
+      function getTranslatedCategory(category) {
+        switch (category) {
+          case 'prohibition':
+            return 'Zakazy';
+          case 'limitation':
+            return 'Ograniczenia';
+          case 'access':
+            return 'Dostęp';
+          case 'conditional':
+            return 'Warunki czasowe';
+          case 'warning':
+            return 'Ostrzeżenia';
+          case 'info':
+            return 'Informacje';
+          default:
+            return 'Inne';
+        }
+      }
+      
       // Wyświetlenie informacji o aktualnej ulicy
       function updateStreetInfo(latitude, longitude, roadType) {
-        // Symulujemy dane o nazwie ulicy
+        // Ta funkcja została zastąpiona przez updateStreetDisplay, więc przekierowujemy do niej
+        // z pustymi ograniczeniami, zanim otrzymamy dane OSM
         const streets = {
           'motorway': ['Autostrada A1', 'Autostrada A2', 'Autostrada A4'],
           'trunk': ['Droga ekspresowa S7', 'Droga ekspresowa S8', 'Droga ekspresowa S5'],
@@ -2548,33 +2607,692 @@
         const streetIndex = Math.floor((latitude + longitude) * 10) % 3;
         const streetName = streets[roadType][streetIndex];
         
-        // Aktualizuj wyświetlanie nazwy ulicy
-        const streetDisplay = document.createElement('div');
-        streetDisplay.className = 'street-display';
-        streetDisplay.textContent = streetName;
-        streetDisplay.style.position = 'fixed';
-        streetDisplay.style.bottom = '180px';
-        streetDisplay.style.left = '50%';
-        streetDisplay.style.transform = 'translateX(-50%)';
-        streetDisplay.style.background = 'rgba(0,0,0,0.7)';
-        streetDisplay.style.color = 'white';
-        streetDisplay.style.padding = '8px 15px';
-        streetDisplay.style.borderRadius = '20px';
-        streetDisplay.style.fontFamily = 'Arial, sans-serif';
-        streetDisplay.style.fontSize = '16px';
-        streetDisplay.style.zIndex = '1000';
+        // Wyświetl tymczasowo nazwę ulicy, zanim otrzymamy prawdziwe dane z OSM
+        updateStreetDisplay(streetName, []);
+      }
+      
+      // Pobieranie danych drogowych z OpenStreetMap przez Overpass API
+      function fetchOSMRoadData(latitude, longitude) {
+        // Ograniczamy liczbę zapytań, aby nie przeciążać API
+        const now = Date.now();
+        if (window.lastOSMRequest && (now - window.lastOSMRequest < 5000)) {
+          return; // Ograniczamy do jednego zapytania na 5 sekund
+        }
+        window.lastOSMRequest = now;
         
+        // Tworzymy zapytanie Overpass
+        const radius = 100; // Zwiększony promień wyszukiwania w metrach
+        const query = `
+          [out:json][timeout:25];
+          (
+            // Wyszukaj wszystkie drogi w pobliżu z dodatkowymi tagami dla ograniczeń
+            way["highway"](around:${radius},${latitude},${longitude});
+            // Drogi z ograniczeniami dostępu
+            way["access"](around:${radius},${latitude},${longitude});
+            // Drogi jednokierunkowe
+            way["oneway"="yes"](around:${radius},${latitude},${longitude});
+            // Drogi z ograniczeniami masy
+            way["maxweight"](around:${radius},${latitude},${longitude});
+            // Drogi z ograniczeniami wysokości
+            way["maxheight"](around:${radius},${latitude},${longitude});
+            // Drogi z ograniczeniami szerokości
+            way["maxwidth"](around:${radius},${latitude},${longitude});
+            // Drogi w budowie
+            way["highway"="construction"](around:${radius},${latitude},${longitude});
+            // Drogi z ograniczeniami dla pojazdów
+            way["vehicle"](around:${radius},${latitude},${longitude});
+            way["motor_vehicle"](around:${radius},${latitude},${longitude});
+            way["hgv"](around:${radius},${latitude},${longitude});
+            // Drogi z ograniczeniami dla pieszych i rowerzystów
+            way["foot"](around:${radius},${latitude},${longitude});
+            way["bicycle"](around:${radius},${latitude},${longitude});
+            // Drogi z ograniczeniami czasowymi
+            way["opening_hours"](around:${radius},${latitude},${longitude});
+          );
+          out body;
+          >;
+          out skel qt;
+        `;
+        
+        const overpassUrl = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+        
+        // Pokaż komunikat o ładowaniu
+        console.log("Pobieranie danych OSM...");
+        
+        // Ustaw timeout dla zapytania
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 sekund timeout
+        
+        // Wykonuj zapytanie
+        fetch(overpassUrl, { signal: controller.signal })
+          .then(response => {
+            clearTimeout(timeoutId);
+            if (!response.ok) {
+              throw new Error('Błąd podczas pobierania danych z Overpass API');
+            }
+            return response.json();
+          })
+          .then(data => {
+            console.log("Otrzymano dane OSM:", data);
+            processOSMRoadData(data, latitude, longitude);
+          })
+          .catch(error => {
+            clearTimeout(timeoutId);
+            console.error("Błąd Overpass API:", error);
+            
+            if (error.name === 'AbortError') {
+              console.log("Zapytanie przerwane z powodu timeout");
+              displayErrorMessage('Przekroczono czas oczekiwania na dane drogowe. Używam danych lokalnych.');
+        } else {
+              displayErrorMessage('Nie udało się pobrać danych drogowych. Używam danych lokalnych.');
+            }
+            
+            // Kontynuuj z symulowanymi danymi w przypadku błędu
+            const simulatedRoadType = determineRoadType(latitude, longitude);
+            updateStreetInfo(latitude, longitude, simulatedRoadType);
+          });
+      }
+      
+      // Przetwarzanie danych drogowych z OpenStreetMap
+      function processOSMRoadData(data, latitude, longitude) {
+        if (!data || !data.elements || data.elements.length === 0) {
+          console.log("Brak danych drogowych z OSM");
+          const simulatedRoadType = determineRoadType(latitude, longitude);
+          updateStreetInfo(latitude, longitude, simulatedRoadType);
+          return;
+        }
+        
+        // Przygotuj wszystkie drogi z danymi GPS
+        const roadsWithLocations = [];
+        
+        // Najpierw zbierzmy wszystkie węzły
+        const nodes = {};
+        data.elements.forEach(element => {
+          if (element.type === 'node' && element.lat && element.lon) {
+            nodes[element.id] = {
+              lat: element.lat,
+              lon: element.lon
+            };
+          }
+        });
+        
+        // Teraz przygotujmy drogi z ich danymi GPS
+        data.elements.forEach(element => {
+          if (element.type === 'way' && element.tags && element.tags.highway && element.nodes) {
+            // Zbierz współrzędne drogi
+            const wayPoints = [];
+            let validWay = false;
+            
+            element.nodes.forEach(nodeId => {
+              if (nodes[nodeId]) {
+                wayPoints.push(nodes[nodeId]);
+                validWay = true;
+              }
+            });
+            
+            if (validWay && wayPoints.length > 0) {
+              // Oblicz średnie współrzędne drogi
+              let sumLat = 0, sumLon = 0;
+              wayPoints.forEach(point => {
+                sumLat += point.lat;
+                sumLon += point.lon;
+              });
+              
+              const centerLat = sumLat / wayPoints.length;
+              const centerLon = sumLon / wayPoints.length;
+              
+              // Oblicz odległość od bieżącej pozycji do drogi
+              const distance = calculateDistance(latitude, longitude, centerLat, centerLon);
+              
+              // Oblicz najbliższy punkt na drodze (jeśli mamy więcej niż 1 punkt)
+              let closestPointDistance = distance;
+              if (wayPoints.length > 1) {
+                wayPoints.forEach(point => {
+                  const pointDistance = calculateDistance(latitude, longitude, point.lat, point.lon);
+                  if (pointDistance < closestPointDistance) {
+                    closestPointDistance = pointDistance;
+                  }
+                });
+              }
+              
+              // Oblicz priorytet drogi (niższy priorytet = ważniejsza droga)
+              let priority = 10; // Domyślny priorytet
+              
+              // Drogi z nazwami są ważniejsze (niższy priorytet)
+              if (element.tags.name) priority -= 3;
+              
+              // Drogi z ograniczeniem prędkości są ważniejsze
+              if (element.tags.maxspeed) priority -= 2;
+              
+              // Większe drogi są ważniejsze
+              const roadType = element.tags.highway;
+              if (roadType === 'motorway' || roadType === 'trunk') priority -= 5;
+              if (roadType === 'primary') priority -= 4;
+              if (roadType === 'secondary') priority -= 3;
+              if (roadType === 'tertiary') priority -= 2;
+              if (roadType === 'residential') priority -= 1;
+              
+              // Dodaj drogę do listy
+              roadsWithLocations.push({
+                road: element,
+                distance: closestPointDistance,
+                centerLat,
+                centerLon,
+                priority
+              });
+            }
+          }
+        });
+        
+        // Posortuj drogi według odległości i priorytetu
+        roadsWithLocations.sort((a, b) => {
+          // Jeśli drogi są w podobnej odległości (w promieniu 20m), decyduje priorytet
+          if (Math.abs(a.distance - b.distance) < 20) {
+            return a.priority - b.priority;
+          }
+          return a.distance - b.distance;
+        });
+        
+        // Pobierz najbliższą drogę
+        if (roadsWithLocations.length > 0) {
+          const bestRoad = roadsWithLocations[0];
+          console.log("Wybrana droga:", bestRoad.road, "odległość:", bestRoad.distance, "priorytet:", bestRoad.priority);
+          updateRoadInfoFromOSM(bestRoad.road);
+        } else {
+          console.log("Nie znaleziono odpowiedniej drogi w pobliżu");
+          const simulatedRoadType = determineRoadType(latitude, longitude);
+          updateStreetInfo(latitude, longitude, simulatedRoadType);
+        }
+      }
+      
+      // Aktualizacja informacji o drodze na podstawie danych OSM
+      function updateRoadInfoFromOSM(road) {
+        if (!road || !road.tags) return;
+        
+        // Pobierz nazwę ulicy
+        const roadName = road.tags.name || road.tags.ref || "Droga bez nazwy";
+        
+        // Pobierz ograniczenie prędkości
+        let speedLimit = road.tags.maxspeed;
+        
+        // Konwersja tekstowych ograniczeń na liczby
+        if (speedLimit) {
+          // Usuń jednostki i spacje
+          speedLimit = speedLimit.replace(/\s+/g, '');
+          // Wyciągnij samą liczbę
+          const speedMatch = speedLimit.match(/(\d+)/);
+          if (speedMatch && speedMatch[1]) {
+            speedLimit = parseInt(speedMatch[1], 10);
+            } else {
+            // Domyślne ograniczenia dla różnych typów dróg
+            speedLimit = getDefaultSpeedLimit(road.tags.highway);
+            }
+          } else {
+          // Brak jawnego ograniczenia prędkości - użyj domyślnego na podstawie typu drogi
+          speedLimit = getDefaultSpeedLimit(road.tags.highway);
+        }
+        
+        // Zaktualizuj wyświetlane ograniczenie prędkości
+        setSpeedLimit(speedLimit);
+        
+        // Znajdź ograniczenia na drodze
+        const restrictions = findRoadRestrictions(road);
+        
+        // Zaktualizuj nazwę ulicy i ograniczenia na wyświetlaczu
+        updateStreetDisplay(roadName, restrictions);
+        
+        // Pokaż komunikat jeśli znaleziono ograniczenia
+        if (restrictions.length > 0) {
+          const restrictionTypes = restrictions.map(r => r.type);
+          
+          // Sprawdź czy są jakieś ważne ograniczenia
+          const hasImportantRestrictions = restrictionTypes.some(type => 
+            ['no_entry', 'no_vehicles', 'no_motor_vehicles', 'construction', 'weight', 'height', 'width'].includes(type)
+          );
+          
+          if (hasImportantRestrictions) {
+            displayErrorMessage(`Uwaga: Na drodze "${roadName}" obowiązują ważne ograniczenia!`, 6000);
+          }
+        }
+        
+        console.log(`Aktualizacja danych drogi: ${roadName}, ograniczenie: ${speedLimit} km/h, ograniczenia:`, restrictions);
+      }
+      
+      // Funkcja znajdująca ograniczenia na drodze
+      function findRoadRestrictions(road) {
+        if (!road || !road.tags) return [];
+        
+        const restrictions = [];
+        const tags = road.tags;
+        
+        // Sprawdź różne możliwe ograniczenia
+        if (tags.access === 'no' || tags.access === 'private') {
+          restrictions.push({ type: 'no_entry', description: 'Zakaz wjazdu' });
+        }
+        
+        if (tags.oneway === 'yes') {
+          restrictions.push({ type: 'one_way', description: 'Droga jednokierunkowa' });
+        }
+        
+        if (tags.maxweight) {
+          restrictions.push({ type: 'weight', description: `Ograniczenie masy: ${tags.maxweight}` });
+        }
+        
+        if (tags.maxheight) {
+          restrictions.push({ type: 'height', description: `Ograniczenie wysokości: ${tags.maxheight}` });
+        }
+        
+        if (tags.maxwidth) {
+          restrictions.push({ type: 'width', description: `Ograniczenie szerokości: ${tags.maxwidth}` });
+        }
+        
+        if (tags.maxspeed) {
+          // Pomiń ograniczenie prędkości, ponieważ jest już wyświetlane w innym miejscu
+        }
+        
+        if (tags.highway === 'construction') {
+          restrictions.push({ type: 'construction', description: 'Droga w budowie' });
+        }
+        
+        if (tags['vehicle:forward'] === 'no' || tags['vehicle:backward'] === 'no') {
+          restrictions.push({ type: 'no_vehicles', description: 'Zakaz ruchu pojazdów w jednym kierunku' });
+        }
+        
+        if (tags.vehicle === 'no') {
+          restrictions.push({ type: 'no_vehicles', description: 'Zakaz ruchu pojazdów' });
+        }
+        
+        if (tags.motor_vehicle === 'no') {
+          restrictions.push({ type: 'no_motor_vehicles', description: 'Zakaz ruchu pojazdów silnikowych' });
+        }
+        
+        if (tags.hgv === 'no') {
+          restrictions.push({ type: 'no_trucks', description: 'Zakaz ruchu ciężarówek' });
+        }
+        
+        if (tags.motorcycle === 'no') {
+          restrictions.push({ type: 'no_motorcycles', description: 'Zakaz ruchu motocykli' });
+        }
+        
+        if (tags.foot === 'no') {
+          restrictions.push({ type: 'no_pedestrians', description: 'Zakaz ruchu pieszych' });
+        }
+        
+        if (tags.bicycle === 'no') {
+          restrictions.push({ type: 'no_bicycles', description: 'Zakaz ruchu rowerów' });
+        }
+        
+        // Inne ograniczenia czasowe
+        if (tags.opening_hours) {
+          restrictions.push({ type: 'time_restriction', description: `Ograniczenia czasowe: ${tags.opening_hours}` });
+        }
+        
+        // Ograniczenia prędkości warunkowe
+        if (tags['maxspeed:conditional']) {
+          restrictions.push({ type: 'speed_conditional', description: `Warunkowe ograniczenie prędkości: ${tags['maxspeed:conditional']}` });
+        }
+        
+        // Ulica mieszkalna
+        if (tags.highway === 'living_street') {
+          restrictions.push({ type: 'living_street', description: 'Strefa zamieszkania' });
+        }
+        
+        // Strefa dla pieszych
+        if (tags.highway === 'pedestrian') {
+          restrictions.push({ type: 'pedestrian_zone', description: 'Strefa dla pieszych' });
+        }
+        
+        // Ulica z ograniczeniami tonażu
+        if (tags.hgv === 'destination') {
+          restrictions.push({ type: 'trucks_destination', description: 'Ciężarówki tylko dla docelowego ruchu' });
+        }
+        
+        // Droga z ograniczonym dostępem
+        if (tags.access === 'destination') {
+          restrictions.push({ type: 'destination_only', description: 'Tylko dla docelowego ruchu' });
+        }
+        
+        // Zakaz wjazdu o określonych porach
+        if (tags['access:conditional']) {
+          restrictions.push({ type: 'access_conditional', description: `Warunkowy dostęp: ${tags['access:conditional']}` });
+        }
+        
+        // Ograniczenie długości pojazdu
+        if (tags.maxlength) {
+          restrictions.push({ type: 'length', description: `Ograniczenie długości: ${tags.maxlength}` });
+        }
+        
+        // Zakaz skrętu
+        if (tags['restriction'] && tags['restriction'].includes('no_')) {
+          restrictions.push({ type: 'no_turn', description: 'Zakaz skrętu' });
+        }
+        
+        // Zakaz zawracania
+        if (tags['restriction'] === 'no_u_turn') {
+          restrictions.push({ type: 'no_u_turn', description: 'Zakaz zawracania' });
+        }
+        
+        // Pobieramy także informacje o nawierzchni drogi
+        if (tags.surface) {
+          const surfaceType = tags.surface;
+          let surfaceDescription = 'Nawierzchnia: ';
+          
+          switch(surfaceType) {
+            case 'asphalt':
+              surfaceDescription += 'asfaltowa';
+              break;
+            case 'concrete':
+              surfaceDescription += 'betonowa';
+              break;
+            case 'paved':
+              surfaceDescription += 'utwardzona';
+              break;
+            case 'unpaved':
+              surfaceDescription += 'nieutwardzona';
+              break;
+            case 'gravel':
+              surfaceDescription += 'żwirowa';
+              break;
+            case 'paving_stones':
+              surfaceDescription += 'brukowa';
+              break;
+            case 'cobblestone':
+              surfaceDescription += 'kocie łby';
+              break;
+            case 'dirt':
+              surfaceDescription += 'gruntowa';
+              break;
+            case 'grass':
+              surfaceDescription += 'trawiasta';
+              break;
+            case 'sand':
+              surfaceDescription += 'piaszczysta';
+              break;
+            default:
+              surfaceDescription += surfaceType;
+          }
+          
+          restrictions.push({ type: 'surface', description: surfaceDescription });
+        }
+        
+        // Dozwolona maksymalna prędkość jest już obsługiwana osobno
+        
+        return restrictions;
+      }
+      
+      // Zwróć ikonę dla danego typu ograniczenia
+      function getRestrictionIcon(type) {
+        switch (type) {
+          case 'no_entry':
+            return '<i class="fas fa-ban" style="color: #ff0000;"></i>';
+          case 'one_way':
+            return '<i class="fas fa-arrow-right" style="color: #0066ff;"></i>';
+          case 'weight':
+            return '<i class="fas fa-truck" style="color: #ff9900;"></i>';
+          case 'height':
+            return '<i class="fas fa-arrows-alt-v" style="color: #ff9900;"></i>';
+          case 'width':
+            return '<i class="fas fa-arrows-alt-h" style="color: #ff9900;"></i>';
+          case 'construction':
+            return '<i class="fas fa-hard-hat" style="color: #ffcc00;"></i>';
+          case 'no_vehicles':
+            return '<i class="fas fa-car" style="color: #ff0000;"></i>';
+          case 'no_motor_vehicles':
+            return '<i class="fas fa-car" style="color: #ff0000;"></i>';
+          case 'no_trucks':
+            return '<i class="fas fa-truck" style="color: #ff0000;"></i>';
+          case 'no_motorcycles':
+            return '<i class="fas fa-motorcycle" style="color: #ff0000;"></i>';
+          case 'no_pedestrians':
+            return '<i class="fas fa-walking" style="color: #ff0000;"></i>';
+          case 'no_bicycles':
+            return '<i class="fas fa-bicycle" style="color: #ff0000;"></i>';
+          case 'time_restriction':
+            return '<i class="fas fa-clock" style="color: #0066ff;"></i>';
+          case 'speed_conditional':
+            return '<i class="fas fa-tachometer-alt" style="color: #ff9900;"></i>';
+          case 'living_street':
+            return '<i class="fas fa-home" style="color: #0066ff;"></i>';
+          case 'pedestrian_zone':
+            return '<i class="fas fa-walking" style="color: #0066ff;"></i>';
+          case 'trucks_destination':
+            return '<i class="fas fa-truck" style="color: #0066ff;"></i>';
+          case 'destination_only':
+            return '<i class="fas fa-flag-checkered" style="color: #0066ff;"></i>';
+          case 'access_conditional':
+            return '<i class="fas fa-calendar-alt" style="color: #ff9900;"></i>';
+          case 'length':
+            return '<i class="fas fa-ruler-horizontal" style="color: #ff9900;"></i>';
+          case 'no_turn':
+            return '<i class="fas fa-undo" style="color: #ff0000;"></i>';
+          case 'no_u_turn':
+            return '<i class="fas fa-undo" style="color: #ff0000;"></i>';
+          case 'surface':
+            return '<i class="fas fa-road" style="color: #999999;"></i>';
+          default:
+            return '<i class="fas fa-exclamation-triangle" style="color: #ff9900;"></i>';
+        }
+      }
+      
+      // Zaktualizuj wyświetlanie informacji o ulicy i ograniczeniach
+      function updateStreetDisplay(roadName, restrictions) {
         // Usuń poprzedni element, jeśli istnieje
         const oldStreetDisplay = document.getElementById('streetDisplay');
         if (oldStreetDisplay) {
           oldStreetDisplay.remove();
         }
         
-        // Dodaj ID dla łatwiejszego odnalezienia
+        // Utwórz kontener dla informacji o ulicy
+        const streetDisplay = document.createElement('div');
+        streetDisplay.className = 'street-display';
         streetDisplay.id = 'streetDisplay';
+        streetDisplay.style.position = 'fixed';
+        streetDisplay.style.bottom = '180px';
+        streetDisplay.style.left = '50%';
+        streetDisplay.style.transform = 'translateX(-50%)';
+        streetDisplay.style.background = 'rgba(0,0,0,0.8)';
+        streetDisplay.style.color = 'white';
+        streetDisplay.style.padding = '10px 15px';
+        streetDisplay.style.borderRadius = '20px';
+        streetDisplay.style.fontFamily = 'Arial, sans-serif';
+        streetDisplay.style.fontSize = '16px';
+        streetDisplay.style.zIndex = '1000';
+        streetDisplay.style.minWidth = '220px';
+        streetDisplay.style.maxWidth = '90%';
+        streetDisplay.style.textAlign = 'center';
+        streetDisplay.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.3)';
+        streetDisplay.style.transition = 'all 0.3s ease';
+        
+        // Dodaj nazwę ulicy
+        const roadNameElement = document.createElement('div');
+        roadNameElement.textContent = roadName;
+        roadNameElement.style.fontWeight = 'bold';
+        roadNameElement.style.fontSize = '18px';
+        roadNameElement.style.marginBottom = restrictions.length > 0 ? '5px' : '0';
+        streetDisplay.appendChild(roadNameElement);
+        
+        // Dodaj ograniczenia, jeśli istnieją
+        if (restrictions.length > 0) {
+          // Dodaj informację o liczbie ograniczeń i przycisk zwijania/rozwijania
+          const toggleContainer = document.createElement('div');
+          toggleContainer.style.display = 'flex';
+          toggleContainer.style.justifyContent = 'space-between';
+          toggleContainer.style.alignItems = 'center';
+          toggleContainer.style.marginTop = '5px';
+          toggleContainer.style.marginBottom = '8px';
+          toggleContainer.style.padding = '5px 0';
+          toggleContainer.style.borderTop = '1px solid rgba(255, 255, 255, 0.2)';
+          toggleContainer.style.borderBottom = '1px solid rgba(255, 255, 255, 0.2)';
+          
+          const restrictionsCount = document.createElement('div');
+          restrictionsCount.textContent = `${restrictions.length} ${restrictions.length === 1 ? 'ograniczenie' : 'ograniczenia'}`;
+          restrictionsCount.style.fontSize = '14px';
+          restrictionsCount.style.color = '#999';
+          toggleContainer.appendChild(restrictionsCount);
+          
+          const toggleButton = document.createElement('button');
+          toggleButton.innerHTML = '<i class="fas fa-chevron-down"></i>';
+          toggleButton.style.background = 'transparent';
+          toggleButton.style.border = 'none';
+          toggleButton.style.color = '#999';
+          toggleButton.style.cursor = 'pointer';
+          toggleButton.style.fontSize = '14px';
+          toggleButton.style.padding = '0 5px';
+          toggleButton.setAttribute('aria-label', 'Pokaż/ukryj ograniczenia');
+          toggleContainer.appendChild(toggleButton);
+          
+          streetDisplay.appendChild(toggleContainer);
+          
+          // Kontener dla ograniczeń, który będzie można zwinąć/rozwinąć
+          const restrictionsContainer = document.createElement('div');
+          restrictionsContainer.id = 'restrictionsContainer';
+          restrictionsContainer.style.display = 'flex';
+          restrictionsContainer.style.flexDirection = 'column';
+          restrictionsContainer.style.gap = '6px';
+          restrictionsContainer.style.fontSize = '14px';
+          restrictionsContainer.style.maxHeight = '200px';
+          restrictionsContainer.style.overflow = 'auto';
+          restrictionsContainer.style.transition = 'max-height 0.3s ease';
+          restrictionsContainer.style.padding = '5px 0';
+          
+          // Pogrupuj ograniczenia według typu
+          const groupedRestrictions = {};
+          restrictions.forEach(restriction => {
+            const category = getCategoryForRestriction(restriction.type);
+            if (!groupedRestrictions[category]) {
+              groupedRestrictions[category] = [];
+            }
+            groupedRestrictions[category].push(restriction);
+          });
+          
+          // Dodaj ograniczenia pogrupowane
+          Object.keys(groupedRestrictions).forEach(category => {
+            // Nagłówek kategorii
+            const categoryHeader = document.createElement('div');
+            categoryHeader.textContent = getTranslatedCategory(category);
+            categoryHeader.style.fontWeight = 'bold';
+            categoryHeader.style.color = '#aaa';
+            categoryHeader.style.fontSize = '12px';
+            categoryHeader.style.textAlign = 'left';
+            categoryHeader.style.marginTop = '5px';
+            categoryHeader.style.textTransform = 'uppercase';
+            restrictionsContainer.appendChild(categoryHeader);
+            
+            // Ograniczenia w kategorii
+            groupedRestrictions[category].forEach(restriction => {
+              const restrictionElement = document.createElement('div');
+              restrictionElement.style.display = 'flex';
+              restrictionElement.style.alignItems = 'center';
+              restrictionElement.style.textAlign = 'left';
+              restrictionElement.style.padding = '3px 0';
+              
+              // Dodaj ikonę ograniczenia
+              const iconSpan = document.createElement('span');
+              iconSpan.innerHTML = getRestrictionIcon(restriction.type);
+              iconSpan.style.marginRight = '8px';
+              iconSpan.style.display = 'flex';
+              iconSpan.style.alignItems = 'center';
+              iconSpan.style.justifyContent = 'center';
+              iconSpan.style.width = '20px';
+              
+              const textSpan = document.createElement('span');
+              textSpan.textContent = restriction.description;
+              
+              restrictionElement.appendChild(iconSpan);
+              restrictionElement.appendChild(textSpan);
+              restrictionsContainer.appendChild(restrictionElement);
+            });
+          });
+          
+          streetDisplay.appendChild(restrictionsContainer);
+          
+          // Logika zwijania/rozwijania
+          let isExpanded = true;
+          toggleButton.addEventListener('click', () => {
+            isExpanded = !isExpanded;
+            if (isExpanded) {
+              restrictionsContainer.style.maxHeight = '200px';
+              restrictionsContainer.style.padding = '5px 0';
+              toggleButton.innerHTML = '<i class="fas fa-chevron-up"></i>';
+          } else {
+              restrictionsContainer.style.maxHeight = '0';
+              restrictionsContainer.style.padding = '0';
+              toggleButton.innerHTML = '<i class="fas fa-chevron-down"></i>';
+            }
+          });
+        }
         
         // Dodaj do dokumentu
         document.body.appendChild(streetDisplay);
+      }
+      
+      // Określ kategorię dla ograniczenia
+      function getCategoryForRestriction(type) {
+        switch (type) {
+          case 'no_entry':
+          case 'no_vehicles':
+          case 'no_motor_vehicles':
+          case 'no_trucks':
+          case 'no_motorcycles':
+          case 'no_pedestrians':
+          case 'no_bicycles':
+          case 'no_turn':
+          case 'no_u_turn':
+            return 'prohibition';
+            
+          case 'weight':
+          case 'height':
+          case 'width':
+          case 'length':
+            return 'limitation';
+            
+          case 'one_way':
+          case 'living_street':
+          case 'pedestrian_zone':
+          case 'trucks_destination':
+          case 'destination_only':
+            return 'access';
+            
+          case 'time_restriction':
+          case 'speed_conditional':
+          case 'access_conditional':
+            return 'conditional';
+            
+          case 'construction':
+            return 'warning';
+            
+          case 'surface':
+            return 'info';
+            
+          default:
+            return 'other';
+        }
+      }
+      
+      // Domyślne ograniczenia prędkości dla różnych typów dróg w Polsce
+      function getDefaultSpeedLimit(highwayType) {
+        switch (highwayType) {
+          case 'motorway':
+            return 140;
+          case 'trunk':
+            return 120;
+          case 'primary':
+            return 90;
+          case 'secondary':
+            return 90;
+          case 'tertiary':
+            return 90;
+          case 'unclassified':
+            return 90;
+          case 'residential':
+            return 50;
+          case 'service':
+            return 30;
+          case 'living_street':
+            return 20;
+          default:
+            return 50;
+        }
       }
 
       // Funkcja do obliczania kierunku na podstawie dwóch punktów
