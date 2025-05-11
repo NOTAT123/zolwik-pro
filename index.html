@@ -586,6 +586,39 @@
           font-size: 22px;
         }
       }
+
+      /* Make sure UI elements stay visible in fullscreen mode */
+      .mapboxgl-ctrl-fullscreen,
+      .mapboxgl-canvas.mapboxgl-canvas-container--fullscreen,
+      .mapboxgl-map.mapboxgl-fullscreen-ancestor {
+        z-index: 1; /* Lower z-index than UI elements */
+      }
+
+      /* Ensure UI elements stay on top in fullscreen mode */
+      .center-btn,
+      .settings-btn,
+      .message-box,
+      .speed-container,
+      .favorites-btn,
+      .layers-btn,
+      .settings-panel,
+      .favorites-panel,
+      .layers-panel,
+      .navigation-panel,
+      .street-info {
+        position: fixed;
+        z-index: 1000; /* Higher z-index to appear above map in fullscreen */
+      }
+      
+      /* Adjust position for fullscreen mode */
+      .tt-fullscreen .speed-container {
+        bottom: 70px; /* Add some extra spacing in fullscreen mode */
+      }
+      
+      /* Special handling for the fullscreen button itself */
+      .tt-fullscreen-button {
+        margin-right: 10px;
+      }
     </style>
   </head>
 
@@ -720,6 +753,138 @@
 
       map.addControl(new tt.NavigationControl());
       map.addControl(new tt.FullscreenControl());
+
+      // Funkcja do tworzenia niestandardowej kontrolki
+      function createCustomControl(options) {
+        const defaultOptions = {
+          iconClass: 'fa-solid fa-layer-group',
+          title: 'Kontrolka',
+          onClick: () => {},
+          position: 'top-right'
+        };
+        
+        // Połącz opcje domyślne z przekazanymi
+        const controlOptions = {...defaultOptions, ...options};
+        
+        // Stwórz własną kontrolkę TomTom
+        class CustomControl {
+          onAdd(map) {
+            this.map = map;
+            this.container = document.createElement('div');
+            this.container.className = 'mapboxgl-ctrl mapboxgl-ctrl-group custom-control';
+            
+            const button = document.createElement('button');
+            button.className = 'custom-control-button';
+            button.type = 'button';
+            button.title = controlOptions.title;
+            button.setAttribute('aria-label', controlOptions.title);
+            
+            // Dodaj ikonę
+            const icon = document.createElement('i');
+            icon.className = controlOptions.iconClass;
+            button.appendChild(icon);
+            
+            // Dodaj event listener
+            button.addEventListener('click', (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              controlOptions.onClick();
+            });
+            
+            // Style dla przycisku
+            button.style.width = '40px';
+            button.style.height = '40px';
+            button.style.display = 'flex';
+            button.style.alignItems = 'center';
+            button.style.justifyContent = 'center';
+            button.style.border = 'none';
+            button.style.background = 'white';
+            button.style.cursor = 'pointer';
+            
+            this.container.appendChild(button);
+            return this.container;
+          }
+          
+          onRemove() {
+            this.container.parentNode.removeChild(this.container);
+            this.map = undefined;
+          }
+        }
+        
+        return new CustomControl();
+      }
+
+      // Przykład dodania przycisku warstw jako kontrolki
+      const layersControl = createCustomControl({
+        iconClass: 'fa-solid fa-layer-group',
+        title: 'Zarządzaj warstwami',
+        onClick: () => {
+          // Obsługa kliknięcia przycisku warstw
+          const layersPanel = document.getElementById('layersPanel');
+          if (layersPanel) {
+            const isVisible = layersPanel.style.display === 'block';
+            layersPanel.style.display = isVisible ? 'none' : 'block';
+          }
+        }
+      });
+      
+      // Dodaj kontrolkę do mapy w pozycji domyślnej
+      map.addControl(layersControl, 'top-right');
+      
+      // Przykład dodania przycisku ulubione jako kontrolki
+      const favoritesControl = createCustomControl({
+        iconClass: 'fa-solid fa-heart',
+        title: 'Ulubione miejsca',
+        onClick: () => {
+          // Obsługa kliknięcia przycisku ulubionych
+          const favoritesPanel = document.getElementById('favoritesPanel');
+          if (favoritesPanel) {
+            const isVisible = favoritesPanel.style.display === 'block';
+            favoritesPanel.style.display = isVisible ? 'none' : 'block';
+          }
+        }
+      });
+      
+      // Dodaj kontrolkę do mapy w pozycji domyślnej
+      map.addControl(favoritesControl, 'top-right');
+
+      // Obsługa zmiany trybu pełnoekranowego
+      map.on('fullscreenchange', function() {
+        const isFullscreen = document.fullscreenElement || 
+                             document.mozFullScreenElement || 
+                             document.webkitFullscreenElement || 
+                             document.msFullscreenElement;
+        
+        // Dostosuj elementy UI w trybie pełnoekranowym
+        const uiElements = [
+          centerButton,
+          settingsBtn,
+          messageBox,
+          document.getElementById('speedContainer'),
+          document.getElementById('favoritesBtn'),
+          document.getElementById('layersBtn'),
+          document.getElementById('settingsPanel'),
+          document.getElementById('favoritesPanel'),
+          document.getElementById('layersPanel'),
+          document.getElementById('navigationPanel'),
+          document.getElementById('streetInfo')
+        ];
+        
+        // Upewnij się, że elementy UI pozostają widoczne
+        uiElements.forEach(element => {
+          if (element) {
+            // Ustawienie stylu fixed lub absolute w zależności od trybu
+            element.style.position = isFullscreen ? 'fixed' : '';
+            
+            // Dodatkowe dostosowania dla konkretnych elementów
+            if (element === document.getElementById('speedContainer') && isFullscreen) {
+              element.style.bottom = '70px';
+            }
+          }
+        });
+        
+        console.log('Tryb pełnoekranowy zmieniony:', isFullscreen ? 'włączony' : 'wyłączony');
+      });
 
       // Inicjalizacja - spróbuj natychmiast pobrać lokalizację
       if (navigator.geolocation) {
