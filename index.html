@@ -760,6 +760,113 @@
         }
       });
 
+
+      // Funkcja wyboru miejsca docelowego i uruchomienia nawigacji
+      function selectDestination(destination) {
+        if (!userLocationMarker) {
+          displayErrorMessage("Najpierw włącz lokalizację GPS");
+          return;
+        }
+        
+        // Wyświetl komunikat o uruchamianiu nawigacji
+        displayErrorMessage("Uruchamianie nawigacji...");
+        
+        // Pobierz aktualne współrzędne użytkownika
+        const userLocation = userLocationMarker.getLngLat();
+        
+        // Usuń poprzednią trasę, jeśli istnieje
+        if (currentRoute && map.getLayer('route')) {
+          map.removeLayer('route');
+        }
+        
+        if (map.getSource('route')) {
+          map.removeSource('route');
+        }
+        
+        // Ukryj popup jeśli są otwarte
+        const popups = document.getElementsByClassName('mapboxgl-popup');
+        while(popups[0]) {
+          popups[0].remove();
+        }
+        
+        // Dodaj marker docelowy
+        let destinationMarker = new tt.Marker()
+          .setLngLat([destination.lng, destination.lat])
+          .addTo(map);
+        
+        // Wycentruj mapę tak aby pokazać obie lokalizacje
+        const bounds = new tt.LngLatBounds();
+        bounds.extend([userLocation.lng, userLocation.lat]);
+        bounds.extend([destination.lng, destination.lat]);
+        
+        map.fitBounds(bounds, {
+          padding: 100,
+          duration: 1000
+        });
+        
+        // Wywołanie API routingu TomTom
+        const routingApi = 'https://api.tomtom.com/routing/1/calculateRoute/' + 
+              userLocation.lat + ',' + userLocation.lng + ':' + 
+              destination.lat + ',' + destination.lng + 
+              '/json?key=' + apiKey + 
+              '&instructionsType=text' +
+              '&language=pl-PL' +
+              '&traffic=true' +
+              '&travelMode=car' +
+              '&vehicleHeading=' + (userHeading || 0);
+              
+        // Pobierz trasę
+        fetch(routingApi)
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Nie można obliczyć trasy');
+            }
+            return response.json();
+          })
+          .then(data => {
+            // Obsłuż odpowiedź
+            if (data && data.routes && data.routes.length > 0) {
+              // Zapisz trasę
+              currentRoute = data.routes[0];
+              
+              // Dodaj trasę do mapy
+              addRouteToMap(currentRoute);
+              
+              // Pokaż panel nawigacji
+              showNavigationPanel(currentRoute);
+              
+              // Podaj pierwszą instrukcję głosową
+              if (currentRoute.guidance && currentRoute.guidance.instructions && currentRoute.guidance.instructions.length > 0) {
+                currentStep = 0;
+                const firstInstruction = currentRoute.guidance.instructions[0];
+                speakInstruction("Rozpoczęto nawigację. " + firstInstruction.message);
+              }
+              
+              // Ustaw timer aktualizacji trasy
+              if (routeUpdateInterval) {
+                clearInterval(routeUpdateInterval);
+              }
+              
+              routeUpdateInterval = setInterval(() => {
+                updateRouteProgress();
+              }, 5000);
+              
+              // Ukryj komunikat o uruchamianiu
+              if (messageBox && !messageBox.getAttribute('hidden')) {
+                messageBox.setAttribute('hidden', true);
+              }
+            } else {
+              throw new Error('Brak dostępnych tras');
+            }
+          })
+          .catch(error => {
+            console.error('Błąd podczas obliczania trasy:', error);
+            displayErrorMessage('Nie można obliczyć trasy: ' + error.message);
+            
+            // Usuń marker docelowy w przypadku błędu
+            destinationMarker.remove();
+          });
+      }
       // Elementy UI
       const settingsBtn = document.querySelector(".settings-btn");
       const settingsPanel = document.getElementById("settingsPanel");
@@ -1937,7 +2044,7 @@
         upcomingManeuver = currentInstruction.message;
         
         // Odtwórz instrukcje głosowe na podstawie odległości
-        if (distanceToManeuver <= 35) {
+        if (distanceToManeuver <= 35 && Math.abs(distanceToManeuver - nextManeuverDistance) > 10) {
           // Tuż przed manewrem (35m lub mniej)
           speakInstruction(formatVoiceInstruction(currentInstruction, distanceToManeuver));
         } else if (distanceToManeuver <= 150 && Math.abs(distanceToManeuver - nextManeuverDistance) > 20) {
@@ -1952,11 +2059,24 @@
         updateNavigationPanel(distanceToManeuver);
       }
 
+      // Aktualizacja panelu nawigacji
+      function updateNavigationPanel(distanceToManeuver) {
+        const distanceElement = document.getElementById('next-maneuver-distance');
+        if (distanceElement) {
+          distanceElement.textContent = `${Math.round(distanceToManeuver)}`;
+        }
+      }
+
       // Funkcja do formatowania instrukcji głosowej
       function formatVoiceInstruction(step, distance) {
         if (!step) return "";
         
-        let message = step.message.toLowerCase();
+        let message = step.message || "";
+        if (typeof message !== 'string') {
+          return "";
+        }
+        
+        message = message.toLowerCase();
         const distanceInMeters = Math.round(distance);
         
         if (distanceInMeters <= 35) {
@@ -2009,14 +2129,6 @@
           }
           
           return instruction;
-        }
-      }
-
-      // Aktualizacja panelu nawigacji
-      function updateNavigationPanel(distanceToManeuver) {
-        const distanceElement = document.querySelector('.navigation-distance');
-        if (distanceElement) {
-          distanceElement.textContent = `${Math.round(distanceToManeuver)} m`;
         }
       }
 
@@ -2076,7 +2188,6 @@
         } else {
           // Ustaw lokalizację dla markera
           userLocationMarker.setLngLat(userLocation);
-          console.log("Zaktualizowano pozycję markera");
         }
 
         // Aktualizacja kierunku - rotate marker
@@ -2085,7 +2196,6 @@
           userHeading = heading;
           if (userLocationMarker && userLocationMarker.getElement()) {
             userLocationMarker.getElement().style.transform = `rotate(${heading}deg)`;
-            console.log("Obrócono strzałkę:", heading);
           }
         } else if (lastPosition && (currentTime - lastPositionTimestamp) > 200) {
           // Oblicz kierunek na podstawie przemieszczenia jeśli brak odczytu z kompasu
@@ -2099,7 +2209,6 @@
             // Obracamy strzałkę zgodnie z kierunkiem
             if (userLocationMarker && userLocationMarker.getElement()) {
               userLocationMarker.getElement().style.transform = `rotate(${calculatedHeading}deg)`;
-              console.log("Obrócono strzałkę (obliczone):", calculatedHeading);
             }
           }
         }
@@ -2113,12 +2222,13 @@
 
         // Aktualizuj obrót mapy aby strzałka pokazywała w górę - płynniejsze na telefonach
         if (isMapCentered && mapRotationEnabled && userHeading !== null) {
-          // Używamy płynniejszego obrotu z mniejszą wartością duration dla telefonów
-          const duration = userMovedMap ? 700 : 300;
+          // Używamy większej wartości duration dla płynniejszego obrotu
+          const duration = userMovedMap ? 1000 : 500;
           map.easeTo({
             center: userLocation,
             bearing: userHeading,
-            duration: duration
+            duration: duration,
+            easing: (t) => t * (2 - t) // Funkcja easing dla płynniejszej rotacji
           });
           
           // Reset flagi ruchu użytkownika po wykonaniu animacji
@@ -2132,6 +2242,9 @@
         // Aktualizacja nawigacji głosowej, jeśli trasa jest aktywna
         if (currentRoute && currentRoute.guidance && currentRoute.guidance.instructions) {
           updateVoiceGuidance(userLocation);
+          
+          // Aktualizujemy również postęp trasy
+          updateRouteProgress();
         }
         
         // Aktualizuj faktyczne ograniczenie prędkości na podstawie pozycji
@@ -2156,7 +2269,7 @@
         userLocationMarker = new tt.Marker({
             element: el,
           anchor: 'center',
-          rotationAlignment: 'viewport' // Zmiana z 'map' na 'viewport' - lepsze działanie na urządzeniach mobilnych
+          rotationAlignment: 'map'  // Zmiana z 'viewport' na 'map'
           })
           .setLngLat([longitude, latitude])
             .addTo(map);
@@ -2243,6 +2356,7 @@
           },
           (error) => {
             console.error("Błąd podczas uzyskiwania początkowej pozycji:", error);
+            displayErrorMessage("Błąd podczas uzyskiwania pozycji: " + messages[error.code] || messages.default);
             // Mimo błędu, rozpocznij ciągłe śledzenie
             startContinuousTracking(options);
           },
@@ -2293,26 +2407,21 @@
 
       // Obsługa przycisku centrowania
       centerButton.addEventListener('click', function() {
-        console.log("Kliknięto przycisk centrowania");
-        
         if (!userLocationMarker) {
-          console.log("Brak markera użytkownika - uruchamiam śledzenie");
           displayErrorMessage("Uruchamiam śledzenie lokalizacji...");
           startUserLocationTracking();
           return;
         }
         
         const userLocation = userLocationMarker.getLngLat();
-        console.log("Centrowanie na pozycji:", userLocation);
-        
-        // Używaj kierunku jeśli mapa ma być obracana, w przeciwnym razie ustaw na 0
         const bearing = mapRotationEnabled ? userHeading || 0 : 0;
         
         map.flyTo({
           center: userLocation,
           zoom: 18,
           bearing: bearing,
-          duration: 700
+          duration: 1000,
+          easing: (t) => t * (2 - t) // Funkcja easing dla płynniejszej animacji
         });
         
         isMapCentered = true;
@@ -2353,16 +2462,43 @@
           return;
         }
         
+        // Anuluj poprzedni timer ukrywania wiadomości, jeśli istnieje
+        if (window.messageHideTimeout) {
+          clearTimeout(window.messageHideTimeout);
+          window.messageHideTimeout = null;
+        }
+        
         // Standardowe wyświetlanie
         messageBoxContent.textContent = message;
         messageBox.removeAttribute('hidden');
         
+        // Dodaj klasę dla lepszej widoczności
+        messageBox.style.opacity = "1";
+        
         // Automatyczne ukrycie po określonym czasie
-        setTimeout(() => {
-          if (messageBox && !messageBox.getAttribute('hidden')) {
+        if (durationMs > 0) {
+          window.messageHideTimeout = setTimeout(() => {
+            if (messageBox && !messageBox.getAttribute('hidden')) {
+              // Płynne ukrycie
+              messageBox.style.opacity = "0";
+              setTimeout(() => {
+                messageBox.setAttribute('hidden', true);
+                messageBox.style.opacity = "1"; // Przywróć opacity dla następnego użycia
+              }, 300);
+            }
+          }, durationMs);
+        }
+        
+        // Dodanie obsługi kliknięcia przycisku zamknięcia
+        if (messageBoxClose) {
+          messageBoxClose.onclick = function() {
             messageBox.setAttribute('hidden', true);
-          }
-        }, durationMs);
+            if (window.messageHideTimeout) {
+              clearTimeout(window.messageHideTimeout);
+              window.messageHideTimeout = null;
+            }
+          };
+        }
       }
 
       // Obsługa ruchu mapy
@@ -2373,984 +2509,357 @@
           isMapCentered = false;
         }
       }
-
-      // Obsługa zakończenia ruchu mapy
-      function handleMapMoveEnd() {
-        // Stabilizacja pozycji markerów po zakończeniu ruchu mapy
-        if (userLocationMarker && lastPosition) {
-          userLocationMarker.setLngLat([lastPosition[0], lastPosition[1]]);
-        }
-        
-        if (userAccuracyCircle && lastPosition) {
-          userAccuracyCircle.setLngLat([lastPosition[0], lastPosition[1]]);
-        }
-      }
-
-      // Obsługa zmiany zooma mapy
-      function handleZoom() {
-        // Aktualizujemy rozmiar okręgu dokładności
-        if (userAccuracyCircle && userAccuracyCircle.getElement() && window.lastAccuracy) {
-          const pixelSize = window.lastAccuracy / 0.075 / Math.pow(2, map.getZoom());
-          userAccuracyCircle.getElement().style.width = `${pixelSize}px`;
-          userAccuracyCircle.getElement().style.height = `${pixelSize}px`;
-        }
-      }
-
-      // Funkcja do aktualizacji wskaźnika prędkości
-      function updateSpeedIndicator(speedInMetersPerSecond, latitude, longitude) {
-        // Zabezpieczenie przed null/undefined/NaN
-        if (speedInMetersPerSecond === null || speedInMetersPerSecond === undefined || isNaN(speedInMetersPerSecond)) {
-          speedInMetersPerSecond = 0;
-        }
-        
-        // Filtrowanie wartości ujemnych (niekiedy GPS zwraca błędne odczyty)
-        if (speedInMetersPerSecond < 0) {
-          speedInMetersPerSecond = 0;
-        }
-        
-        // Konwersja m/s na km/h
-        const speedInKmh = Math.round(speedInMetersPerSecond * 3.6);
-        
-        // Aktualizacja bieżącej prędkości
-        currentSpeed = speedInKmh;
-        
-        // Aktualizacja wyświetlacza
-        speedIndicator.textContent = `${speedInKmh} km/h`;
-        
-        // Pobieranie ograniczenia prędkości z API
-        // W rzeczywistej aplikacji, moglibyśmy pobierać to z API TomTom lub innego źródła
-        // Na potrzeby demonstracji, używamy stałej wartości lub symulujemy zmiany
-        checkSpeedLimit(latitude, longitude);
-        
-        // Zmieniamy kolor wskaźnika prędkości w zależności od przekroczenia prędkości
-        if (currentSpeed > currentSpeedLimit) {
-          // Przekroczenie prędkości - czerwony
-          speedIndicator.style.backgroundColor = '#ff0000';
-        } else if (currentSpeed > currentSpeedLimit * 0.9) {
-          // Blisko limitu - pomarańczowy
-          speedIndicator.style.backgroundColor = '#ff9900';
-        } else {
-          // W normie - niebieski
-          speedIndicator.style.backgroundColor = '#0066ff';
-        }
-      }
-
-      // Funkcja sprawdzająca ograniczenie prędkości na danej drodze
-      function checkSpeedLimit(lat, lon) {
-        // W rzeczywistej aplikacji, tutaj pobieralibyśmy dane z API (np. TomTom, Overpass)
-        // Dla demonstracji, używamy symulowanych danych
-        
-        // Symulacja zmiany ograniczenia prędkości na podstawie lokalizacji
-        // W prawdziwej aplikacji zastąpilibyśmy to API
-        const randomValue = Math.floor(Math.sin(lat * lon * 1000) * 10);
-        
-        if (randomValue < -7) {
-          setSpeedLimit(30);
-        } else if (randomValue < -3) {
-          setSpeedLimit(50);
-        } else if (randomValue < 3) {
-          setSpeedLimit(70);
-        } else if (randomValue < 7) {
-          setSpeedLimit(90);
-        } else {
-          setSpeedLimit(120);
-        }
-      }
       
-      // Ustawienie ograniczenia prędkości
-      function setSpeedLimit(limit) {
-        if (currentSpeedLimit !== limit) {
-        currentSpeedLimit = limit;
-        speedLimit.textContent = limit;
+      // Dodaj trasę do mapy
+      function addRouteToMap(route) {
+        // Usuń poprzednią trasę jeśli istnieje
+        if (map.getLayer('route')) {
+          map.removeLayer('route');
+        }
         
-        // Zmiana koloru obramowania w zależności od limitu
-        if (limit <= 30) {
-          speedLimit.style.borderColor = '#007aff'; // niebieski
-        } else if (limit <= 50) {
-          speedLimit.style.borderColor = '#ff0000'; // czerwony
-        } else if (limit <= 70) {
-          speedLimit.style.borderColor = '#ffcc00'; // żółty
-        } else if (limit <= 90) {
-          speedLimit.style.borderColor = '#ff6600'; // pomarańczowy
-        } else {
-          speedLimit.style.borderColor = '#666666'; // szary dla autostrad
+        if (map.getSource('route')) {
+          map.removeSource('route');
+        }
+        
+        // Dodaj nowe źródło i warstwę
+        const routeGeoJson = {
+          type: 'Feature',
+          properties: {},
+          geometry: {
+            type: 'LineString',
+            coordinates: route.legs[0].points.map(point => [point.longitude, point.latitude])
           }
-        }
-      }
-
-      // Obsługa błędów geolokalizacji
-      function handleLocationError(error) {
-        console.error('Błąd geolokalizacji:', error);
-        
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            displayErrorMessage("Dostęp do lokalizacji został zablokowany. Zmień ustawienia przeglądarki, aby umożliwić geolokalizację.");
-            break;
-          case error.POSITION_UNAVAILABLE:
-            displayErrorMessage("Nie można określić Twojej lokalizacji. Upewnij się, że usługi lokalizacji są włączone.");
-            break;
-          case error.TIMEOUT:
-            displayErrorMessage("Przekroczono czas oczekiwania na lokalizację. Spróbuj ponownie.");
-            break;
-          default:
-            displayErrorMessage("Wystąpił błąd podczas określania lokalizacji: " + error.message);
-        }
-
-        // Spróbuj ponownie po 5 sekundach
-        setTimeout(() => {
-          if (userWatchId === null) {
-            startUserLocationTracking();
-          }
-        }, 5000);
-      }
-
-      // Pobieranie ograniczenia prędkości na podstawie danych drogowych
-      function updateRealSpeedLimit(latitude, longitude) {
-        // Dane z API TomTom można pobrać używając tego endpointu:
-        // https://api.tomtom.com/map/1/tile/basic/main/0/0/0.pbf?key=YOUR_API_KEY
-        
-        // Dla celów demonstracyjnych, użyjemy bardziej inteligentnej symulacji
-        // która lepiej odzwierciedla rzeczywiste ograniczenia prędkości
-        
-        // Pobierz typ drogi na podstawie współrzędnych (symulacja)
-        const roadType = determineRoadType(latitude, longitude);
-        
-        // Ustaw odpowiednie ograniczenie na podstawie typu drogi
-        switch(roadType) {
-          case 'motorway':
-            setSpeedLimit(140);
-            break;
-          case 'trunk':
-            setSpeedLimit(120);
-            break;
-          case 'primary':
-            setSpeedLimit(90);
-            break;
-          case 'secondary':
-            setSpeedLimit(70);
-            break;
-          case 'tertiary':
-            setSpeedLimit(50);
-            break;
-          case 'residential':
-            setSpeedLimit(30);
-            break;
-          case 'living_street':
-            setSpeedLimit(20);
-            break;
-          default:
-            setSpeedLimit(50); // Domyślnie 50 km/h
-        }
-        
-        // Dodaj wyświetlenie aktualnej ulicy/drogi
-        updateStreetInfo(latitude, longitude, roadType);
-        
-        // Pobierz rzeczywiste dane z OpenStreetMap
-        fetchOSMRoadData(latitude, longitude);
-      }
-      
-      // Funkcja określająca typ drogi na podstawie współrzędnych (symulacja)
-      function determineRoadType(latitude, longitude) {
-        // W rzeczywistej aplikacji, używalibyśmy API drogowego (np. TomTom lub OpenStreetMap)
-        // Tutaj symulujemy to na podstawie współrzędnych
-        
-        // Używamy kombinacji współrzędnych do symulowania różnych typów dróg
-        const latMod = Math.abs(Math.sin(latitude * 10)) * 10;
-        const lngMod = Math.abs(Math.cos(longitude * 10)) * 10;
-        const combinedValue = (latMod + lngMod) % 10;
-        
-        // Przypisujemy typ drogi na podstawie wartości
-        if (combinedValue < 1) return 'motorway';       // Autostrada
-        if (combinedValue < 2) return 'trunk';          // Droga ekspresowa
-        if (combinedValue < 3.5) return 'primary';      // Droga krajowa
-        if (combinedValue < 5) return 'secondary';      // Droga wojewódzka
-        if (combinedValue < 7) return 'tertiary';       // Droga powiatowa
-        if (combinedValue < 9) return 'residential';    // Droga miejska
-        return 'living_street';                         // Strefa zamieszkania
-      }
-      
-      // Tłumacz nazwy kategorii
-      function getTranslatedCategory(category) {
-        switch (category) {
-          case 'prohibition':
-            return 'Zakazy';
-          case 'limitation':
-            return 'Ograniczenia';
-          case 'access':
-            return 'Dostęp';
-          case 'conditional':
-            return 'Warunki czasowe';
-          case 'warning':
-            return 'Ostrzeżenia';
-          case 'info':
-            return 'Informacje';
-          default:
-            return 'Inne';
-        }
-      }
-      
-      // Wyświetlenie informacji o aktualnej ulicy
-      function updateStreetInfo(latitude, longitude, roadType) {
-        // Ta funkcja została zastąpiona przez updateStreetDisplay, więc przekierowujemy do niej
-        // z pustymi ograniczeniami, zanim otrzymamy dane OSM
-        const streets = {
-          'motorway': ['Autostrada A1', 'Autostrada A2', 'Autostrada A4'],
-          'trunk': ['Droga ekspresowa S7', 'Droga ekspresowa S8', 'Droga ekspresowa S5'],
-          'primary': ['Droga krajowa 7', 'Droga krajowa 8', 'Aleja Niepodległości'],
-          'secondary': ['Droga wojewódzka 123', 'Ulica Mickiewicza', 'Aleja Jana Pawła II'],
-          'tertiary': ['Ulica Kościuszki', 'Ulica Piastowska', 'Ulica Chrobrego'],
-          'residential': ['Ulica Polna', 'Ulica Kwiatowa', 'Ulica Słoneczna'],
-          'living_street': ['Osiedle Słoneczne', 'Ulica Cicha', 'Ulica Spokojna']
         };
         
-        // Wybierz losową nazwę ulicy z odpowiedniej kategorii
-        const streetIndex = Math.floor((latitude + longitude) * 10) % 3;
-        const streetName = streets[roadType][streetIndex];
+        map.addSource('route', {
+          type: 'geojson',
+          data: routeGeoJson
+        });
         
-        // Wyświetl tymczasowo nazwę ulicy, zanim otrzymamy prawdziwe dane z OSM
-        updateStreetDisplay(streetName, []);
+        map.addLayer({
+          id: 'route',
+          type: 'line',
+          source: 'route',
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round'
+          },
+          paint: {
+            'line-color': '#4CAF50',
+            'line-width': 6,
+            'line-opacity': 0.8
+          }
+        });
       }
       
-      // Pobieranie danych drogowych z OpenStreetMap przez Overpass API
-      function fetchOSMRoadData(latitude, longitude) {
-        // Ograniczamy liczbę zapytań, aby nie przeciążać API
-        const now = Date.now();
-        if (window.lastOSMRequest && (now - window.lastOSMRequest < 5000)) {
-          return; // Ograniczamy do jednego zapytania na 5 sekund
+      // Pokaż panel nawigacji
+      function showNavigationPanel(route) {
+        // Przygotuj treść panelu
+        let content = '';
+        
+        if (route.guidance && route.guidance.instructions) {
+          const nextInstruction = route.guidance.instructions[0];
+          
+          // Dodaj informacje o dystansie i czasie
+          const totalDistance = Math.round(route.summary.lengthInMeters / 10) / 100; // w km
+          const eta = new Date(Date.now() + route.summary.travelTimeInSeconds * 1000);
+          const etaString = eta.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          
+          content += `
+            <div style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #eee;">
+              <div style="font-size: 14px; color: #666;">Dystans: ${totalDistance} km</div>
+              <div style="font-size: 14px; color: #666;">Przyjazd: ${etaString}</div>
+            </div>
+          `;
+          
+          // Dodaj kolejny manewr
+          if (nextInstruction) {
+            // Określ odpowiednią ikonę dla manewru
+            let iconClass = 'arrow-right';
+            if (nextInstruction.message.toLowerCase().includes('skręć w lewo')) {
+              iconClass = 'arrow-left';
+            } else if (nextInstruction.message.toLowerCase().includes('skręć w prawo')) {
+              iconClass = 'arrow-right';
+            } else if (nextInstruction.message.toLowerCase().includes('prosto')) {
+              iconClass = 'arrow-up';
+            } else if (nextInstruction.message.toLowerCase().includes('zawróć')) {
+              iconClass = 'arrow-down';
+            } else if (nextInstruction.message.toLowerCase().includes('rondo')) {
+              iconClass = 'undo';
+            }
+            
+            content += `
+              <div class="navigation-step">
+                <div class="navigation-icon">
+                  <i class="fas fa-${iconClass}"></i>
+                </div>
+                <div class="navigation-info">
+                  ${nextInstruction.message}
+                  <div class="navigation-distance">
+                    <span id="next-maneuver-distance">---</span> m
+                  </div>
+                </div>
+              </div>
+            `;
+            
+            // Dodaj kolejny manewr jeśli istnieje
+            if (route.guidance.instructions.length > 1) {
+              const followingInstruction = route.guidance.instructions[1];
+              
+              // Określ ikonę dla następnego manewru
+              let nextIconClass = 'arrow-right';
+              if (followingInstruction.message.toLowerCase().includes('skręć w lewo')) {
+                nextIconClass = 'arrow-left';
+              } else if (followingInstruction.message.toLowerCase().includes('skręć w prawo')) {
+                nextIconClass = 'arrow-right';
+              } else if (followingInstruction.message.toLowerCase().includes('prosto')) {
+                nextIconClass = 'arrow-up';
+              } else if (followingInstruction.message.toLowerCase().includes('zawróć')) {
+                nextIconClass = 'arrow-down';
+              } else if (followingInstruction.message.toLowerCase().includes('rondo')) {
+                nextIconClass = 'undo';
+              }
+              
+              content += `
+                <div class="navigation-step" style="opacity: 0.7;">
+                  <div class="navigation-icon" style="background: #999;">
+                    <i class="fas fa-${nextIconClass}"></i>
+                  </div>
+                  <div class="navigation-info">
+                    ${followingInstruction.message}
+                  </div>
+                </div>
+              `;
+            }
+          }
         }
-        window.lastOSMRequest = now;
         
-        // Tworzymy zapytanie Overpass
-        const radius = 100; // Zwiększony promień wyszukiwania w metrach
-        const query = `
-          [out:json][timeout:25];
-          (
-            // Wyszukaj wszystkie drogi w pobliżu z dodatkowymi tagami dla ograniczeń
-            way["highway"](around:${radius},${latitude},${longitude});
-            // Drogi z ograniczeniami dostępu
-            way["access"](around:${radius},${latitude},${longitude});
-            // Drogi jednokierunkowe
-            way["oneway"="yes"](around:${radius},${latitude},${longitude});
-            // Drogi z ograniczeniami masy
-            way["maxweight"](around:${radius},${latitude},${longitude});
-            // Drogi z ograniczeniami wysokości
-            way["maxheight"](around:${radius},${latitude},${longitude});
-            // Drogi z ograniczeniami szerokości
-            way["maxwidth"](around:${radius},${latitude},${longitude});
-            // Drogi w budowie
-            way["highway"="construction"](around:${radius},${latitude},${longitude});
-            // Drogi z ograniczeniami dla pojazdów
-            way["vehicle"](around:${radius},${latitude},${longitude});
-            way["motor_vehicle"](around:${radius},${latitude},${longitude});
-            way["hgv"](around:${radius},${latitude},${longitude});
-            // Drogi z ograniczeniami dla pieszych i rowerzystów
-            way["foot"](around:${radius},${latitude},${longitude});
-            way["bicycle"](around:${radius},${latitude},${longitude});
-            // Drogi z ograniczeniami czasowymi
-            way["opening_hours"](around:${radius},${latitude},${longitude});
-          );
-          out body;
-          >;
-          out skel qt;
-        `;
+        // Aktualizuj treść panelu
+        navigationContent.innerHTML = content;
         
-        const overpassUrl = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+        // Pokaż panel
+        navigationPanel.style.display = 'block';
         
-        // Pokaż komunikat o ładowaniu
-        console.log("Pobieranie danych OSM...");
-        
-        // Ustaw timeout dla zapytania
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 sekund timeout
-        
-        // Wykonuj zapytanie
-        fetch(overpassUrl, { signal: controller.signal })
-          .then(response => {
-            clearTimeout(timeoutId);
-            if (!response.ok) {
-              throw new Error('Błąd podczas pobierania danych z Overpass API');
-            }
-            return response.json();
-          })
-          .then(data => {
-            console.log("Otrzymano dane OSM:", data);
-            processOSMRoadData(data, latitude, longitude);
-          })
-          .catch(error => {
-            clearTimeout(timeoutId);
-            console.error("Błąd Overpass API:", error);
-            
-            if (error.name === 'AbortError') {
-              console.log("Zapytanie przerwane z powodu timeout");
-              displayErrorMessage('Przekroczono czas oczekiwania na dane drogowe. Używam danych lokalnych.');
-        } else {
-              displayErrorMessage('Nie udało się pobrać danych drogowych. Używam danych lokalnych.');
-            }
-            
-            // Kontynuuj z symulowanymi danymi w przypadku błędu
-            const simulatedRoadType = determineRoadType(latitude, longitude);
-            updateStreetInfo(latitude, longitude, simulatedRoadType);
-          });
+        // Dodaj obsługę zamknięcia
+        navigationClose.addEventListener('click', () => {
+          // Zatrzymaj aktualizację trasy
+          if (routeUpdateInterval) {
+            clearInterval(routeUpdateInterval);
+            routeUpdateInterval = null;
+          }
+          
+          // Ukryj panel
+          navigationPanel.style.display = 'none';
+          
+          // Usuń trasę z mapy
+          if (map.getLayer('route')) {
+            map.removeLayer('route');
+          }
+          
+          if (map.getSource('route')) {
+            map.removeSource('route');
+          }
+          
+          // Zresetuj zmienne nawigacji
+          currentRoute = null;
+          currentStep = 0;
+          
+          // Powiedz użytkownikowi, że nawigacja została zakończona
+          speakInstruction("Nawigacja zakończona");
+        });
       }
       
-      // Przetwarzanie danych drogowych z OpenStreetMap
-      function processOSMRoadData(data, latitude, longitude) {
-        if (!data || !data.elements || data.elements.length === 0) {
-          console.log("Brak danych drogowych z OSM");
-          const simulatedRoadType = determineRoadType(latitude, longitude);
-          updateStreetInfo(latitude, longitude, simulatedRoadType);
+      // Aktualizacja postępu trasy
+      function updateRouteProgress() {
+        if (!currentRoute || !userLocationMarker) {
           return;
         }
         
-        // Przygotuj wszystkie drogi z danymi GPS
-        const roadsWithLocations = [];
+        const userLocation = userLocationMarker.getLngLat();
         
-        // Najpierw zbierzmy wszystkie węzły
-        const nodes = {};
-        data.elements.forEach(element => {
-          if (element.type === 'node' && element.lat && element.lon) {
-            nodes[element.id] = {
-              lat: element.lat,
-              lon: element.lon
-            };
-          }
-        });
-        
-        // Teraz przygotujmy drogi z ich danymi GPS
-        data.elements.forEach(element => {
-          if (element.type === 'way' && element.tags && element.tags.highway && element.nodes) {
-            // Zbierz współrzędne drogi
-            const wayPoints = [];
-            let validWay = false;
+        // Jeśli mamy instrukcje nawigacji, sprawdź czy minęliśmy jakiś punkt
+        if (currentRoute.guidance && currentRoute.guidance.instructions && currentRoute.guidance.instructions.length > currentStep) {
+          const nextInstruction = currentRoute.guidance.instructions[currentStep];
+          
+          if (nextInstruction && nextInstruction.point) {
+            // Oblicz odległość do kolejnego manewru
+            const distanceToManeuver = calculateDistance(
+              userLocation.lat, userLocation.lng,
+              nextInstruction.point.latitude, nextInstruction.point.longitude
+            );
             
-            element.nodes.forEach(nodeId => {
-              if (nodes[nodeId]) {
-                wayPoints.push(nodes[nodeId]);
-                validWay = true;
-              }
-            });
+            // Aktualizuj wyświetlaną odległość
+            const distanceElement = document.getElementById('next-maneuver-distance');
+            if (distanceElement) {
+              distanceElement.textContent = Math.round(distanceToManeuver);
+            }
             
-            if (validWay && wayPoints.length > 0) {
-              // Oblicz średnie współrzędne drogi
-              let sumLat = 0, sumLon = 0;
-              wayPoints.forEach(point => {
-                sumLat += point.lat;
-                sumLon += point.lon;
-              });
+            // Sprawdź czy minęliśmy już ten punkt manewru
+            if (distanceToManeuver < 15) {
+              // Manewr wykonany, przejdź do następnego
+              currentStep++;
               
-              const centerLat = sumLat / wayPoints.length;
-              const centerLon = sumLon / wayPoints.length;
-              
-              // Oblicz odległość od bieżącej pozycji do drogi
-              const distance = calculateDistance(latitude, longitude, centerLat, centerLon);
-              
-              // Oblicz najbliższy punkt na drodze (jeśli mamy więcej niż 1 punkt)
-              let closestPointDistance = distance;
-              if (wayPoints.length > 1) {
-                wayPoints.forEach(point => {
-                  const pointDistance = calculateDistance(latitude, longitude, point.lat, point.lon);
-                  if (pointDistance < closestPointDistance) {
-                    closestPointDistance = pointDistance;
+              // Jeśli nie ma więcej instrukcji, to znaczy że dojechaliśmy do celu
+              if (currentStep >= currentRoute.guidance.instructions.length) {
+                speakInstruction("Dotarłeś do celu");
+                
+                // Zatrzymaj aktualizację trasy
+                if (routeUpdateInterval) {
+                  clearInterval(routeUpdateInterval);
+                  routeUpdateInterval = null;
+                }
+                
+                // Ukryj panel po 5 sekundach
+                setTimeout(() => {
+                  navigationPanel.style.display = 'none';
+                  
+                  // Usuń trasę z mapy
+                  if (map.getLayer('route')) {
+                    map.removeLayer('route');
                   }
-                });
+                  
+                  if (map.getSource('route')) {
+                    map.removeSource('route');
+                  }
+                  
+                  // Zresetuj zmienne nawigacji
+                  currentRoute = null;
+                  currentStep = 0;
+                }, 5000);
+                
+                return;
               }
               
-              // Oblicz priorytet drogi (niższy priorytet = ważniejsza droga)
-              let priority = 10; // Domyślny priorytet
+              // Aktualizuj panel nawigacji z nową instrukcją
+              showNavigationPanel(currentRoute);
               
-              // Drogi z nazwami są ważniejsze (niższy priorytet)
-              if (element.tags.name) priority -= 3;
-              
-              // Drogi z ograniczeniem prędkości są ważniejsze
-              if (element.tags.maxspeed) priority -= 2;
-              
-              // Większe drogi są ważniejsze
-              const roadType = element.tags.highway;
-              if (roadType === 'motorway' || roadType === 'trunk') priority -= 5;
-              if (roadType === 'primary') priority -= 4;
-              if (roadType === 'secondary') priority -= 3;
-              if (roadType === 'tertiary') priority -= 2;
-              if (roadType === 'residential') priority -= 1;
-              
-              // Dodaj drogę do listy
-              roadsWithLocations.push({
-                road: element,
-                distance: closestPointDistance,
-                centerLat,
-                centerLon,
-                priority
-              });
+              // Podaj nową instrukcję głosową
+              const newInstruction = currentRoute.guidance.instructions[currentStep];
+              speakInstruction(newInstruction.message);
             }
           }
-        });
-        
-        // Posortuj drogi według odległości i priorytetu
-        roadsWithLocations.sort((a, b) => {
-          // Jeśli drogi są w podobnej odległości (w promieniu 20m), decyduje priorytet
-          if (Math.abs(a.distance - b.distance) < 20) {
-            return a.priority - b.priority;
-          }
-          return a.distance - b.distance;
-        });
-        
-        // Pobierz najbliższą drogę
-        if (roadsWithLocations.length > 0) {
-          const bestRoad = roadsWithLocations[0];
-          console.log("Wybrana droga:", bestRoad.road, "odległość:", bestRoad.distance, "priorytet:", bestRoad.priority);
-          updateRoadInfoFromOSM(bestRoad.road);
-        } else {
-          console.log("Nie znaleziono odpowiedniej drogi w pobliżu");
-          const simulatedRoadType = determineRoadType(latitude, longitude);
-          updateStreetInfo(latitude, longitude, simulatedRoadType);
         }
       }
-      
-      // Aktualizacja informacji o drodze na podstawie danych OSM
-      function updateRoadInfoFromOSM(road) {
-        if (!road || !road.tags) return;
+
+      // // Funkcja wyboru miejsca docelowego i uruchomienia nawigacji
+      // function selectDestination(destination) {
+      //   if (!userLocationMarker) {
+      //     displayErrorMessage("Najpierw włącz lokalizację GPS");
+      //     return;
+      //   }
         
-        // Pobierz nazwę ulicy
-        const roadName = road.tags.name || road.tags.ref || "Droga bez nazwy";
+      //   // Wyświetl komunikat o uruchamianiu nawigacji
+      //   displayErrorMessage("Uruchamianie nawigacji...");
         
-        // Pobierz ograniczenie prędkości
-        let speedLimit = road.tags.maxspeed;
+      //   // Pobierz aktualne współrzędne użytkownika
+      //   const userLocation = userLocationMarker.getLngLat();
         
-        // Konwersja tekstowych ograniczeń na liczby
-        if (speedLimit) {
-          // Usuń jednostki i spacje
-          speedLimit = speedLimit.replace(/\s+/g, '');
-          // Wyciągnij samą liczbę
-          const speedMatch = speedLimit.match(/(\d+)/);
-          if (speedMatch && speedMatch[1]) {
-            speedLimit = parseInt(speedMatch[1], 10);
-            } else {
-            // Domyślne ograniczenia dla różnych typów dróg
-            speedLimit = getDefaultSpeedLimit(road.tags.highway);
-            }
-          } else {
-          // Brak jawnego ograniczenia prędkości - użyj domyślnego na podstawie typu drogi
-          speedLimit = getDefaultSpeedLimit(road.tags.highway);
-        }
+      //   // Usuń poprzednią trasę, jeśli istnieje
+      //   if (currentRoute && map.getLayer('route')) {
+      //     map.removeLayer('route');
+      //   }
         
-        // Zaktualizuj wyświetlane ograniczenie prędkości
-        setSpeedLimit(speedLimit);
+      //   if (map.getSource('route')) {
+      //     map.removeSource('route');
+      //   }
         
-        // Znajdź ograniczenia na drodze
-        const restrictions = findRoadRestrictions(road);
+      //   // Ukryj popup jeśli są otwarte
+      //   const popups = document.getElementsByClassName('mapboxgl-popup');
+      //   while(popups[0]) {
+      //     popups[0].remove();
+      //   }
         
-        // Zaktualizuj nazwę ulicy i ograniczenia na wyświetlaczu
-        updateStreetDisplay(roadName, restrictions);
+      //   // Dodaj marker docelowy
+      //   let destinationMarker = new tt.Marker()
+      //     .setLngLat([destination.lng, destination.lat])
+      //     .addTo(map);
         
-        // Pokaż komunikat jeśli znaleziono ograniczenia
-        if (restrictions.length > 0) {
-          const restrictionTypes = restrictions.map(r => r.type);
-          
-          // Sprawdź czy są jakieś ważne ograniczenia
-          const hasImportantRestrictions = restrictionTypes.some(type => 
-            ['no_entry', 'no_vehicles', 'no_motor_vehicles', 'construction', 'weight', 'height', 'width'].includes(type)
-          );
-          
-          if (hasImportantRestrictions) {
-            displayErrorMessage(`Uwaga: Na drodze "${roadName}" obowiązują ważne ograniczenia!`, 6000);
-          }
-        }
+      //   // Wycentruj mapę tak aby pokazać obie lokalizacje
+      //   const bounds = new tt.LngLatBounds();
+      //   bounds.extend([userLocation.lng, userLocation.lat]);
+      //   bounds.extend([destination.lng, destination.lat]);
         
-        console.log(`Aktualizacja danych drogi: ${roadName}, ograniczenie: ${speedLimit} km/h, ograniczenia:`, restrictions);
-      }
-      
-      // Funkcja znajdująca ograniczenia na drodze
-      function findRoadRestrictions(road) {
-        if (!road || !road.tags) return [];
+      //   map.fitBounds(bounds, {
+      //     padding: 100,
+      //     duration: 1000
+      //   });
         
-        const restrictions = [];
-        const tags = road.tags;
-        
-        // Sprawdź różne możliwe ograniczenia
-        if (tags.access === 'no' || tags.access === 'private') {
-          restrictions.push({ type: 'no_entry', description: 'Zakaz wjazdu' });
-        }
-        
-        if (tags.oneway === 'yes') {
-          restrictions.push({ type: 'one_way', description: 'Droga jednokierunkowa' });
-        }
-        
-        if (tags.maxweight) {
-          restrictions.push({ type: 'weight', description: `Ograniczenie masy: ${tags.maxweight}` });
-        }
-        
-        if (tags.maxheight) {
-          restrictions.push({ type: 'height', description: `Ograniczenie wysokości: ${tags.maxheight}` });
-        }
-        
-        if (tags.maxwidth) {
-          restrictions.push({ type: 'width', description: `Ograniczenie szerokości: ${tags.maxwidth}` });
-        }
-        
-        if (tags.maxspeed) {
-          // Pomiń ograniczenie prędkości, ponieważ jest już wyświetlane w innym miejscu
-        }
-        
-        if (tags.highway === 'construction') {
-          restrictions.push({ type: 'construction', description: 'Droga w budowie' });
-        }
-        
-        if (tags['vehicle:forward'] === 'no' || tags['vehicle:backward'] === 'no') {
-          restrictions.push({ type: 'no_vehicles', description: 'Zakaz ruchu pojazdów w jednym kierunku' });
-        }
-        
-        if (tags.vehicle === 'no') {
-          restrictions.push({ type: 'no_vehicles', description: 'Zakaz ruchu pojazdów' });
-        }
-        
-        if (tags.motor_vehicle === 'no') {
-          restrictions.push({ type: 'no_motor_vehicles', description: 'Zakaz ruchu pojazdów silnikowych' });
-        }
-        
-        if (tags.hgv === 'no') {
-          restrictions.push({ type: 'no_trucks', description: 'Zakaz ruchu ciężarówek' });
-        }
-        
-        if (tags.motorcycle === 'no') {
-          restrictions.push({ type: 'no_motorcycles', description: 'Zakaz ruchu motocykli' });
-        }
-        
-        if (tags.foot === 'no') {
-          restrictions.push({ type: 'no_pedestrians', description: 'Zakaz ruchu pieszych' });
-        }
-        
-        if (tags.bicycle === 'no') {
-          restrictions.push({ type: 'no_bicycles', description: 'Zakaz ruchu rowerów' });
-        }
-        
-        // Inne ograniczenia czasowe
-        if (tags.opening_hours) {
-          restrictions.push({ type: 'time_restriction', description: `Ograniczenia czasowe: ${tags.opening_hours}` });
-        }
-        
-        // Ograniczenia prędkości warunkowe
-        if (tags['maxspeed:conditional']) {
-          restrictions.push({ type: 'speed_conditional', description: `Warunkowe ograniczenie prędkości: ${tags['maxspeed:conditional']}` });
-        }
-        
-        // Ulica mieszkalna
-        if (tags.highway === 'living_street') {
-          restrictions.push({ type: 'living_street', description: 'Strefa zamieszkania' });
-        }
-        
-        // Strefa dla pieszych
-        if (tags.highway === 'pedestrian') {
-          restrictions.push({ type: 'pedestrian_zone', description: 'Strefa dla pieszych' });
-        }
-        
-        // Ulica z ograniczeniami tonażu
-        if (tags.hgv === 'destination') {
-          restrictions.push({ type: 'trucks_destination', description: 'Ciężarówki tylko dla docelowego ruchu' });
-        }
-        
-        // Droga z ograniczonym dostępem
-        if (tags.access === 'destination') {
-          restrictions.push({ type: 'destination_only', description: 'Tylko dla docelowego ruchu' });
-        }
-        
-        // Zakaz wjazdu o określonych porach
-        if (tags['access:conditional']) {
-          restrictions.push({ type: 'access_conditional', description: `Warunkowy dostęp: ${tags['access:conditional']}` });
-        }
-        
-        // Ograniczenie długości pojazdu
-        if (tags.maxlength) {
-          restrictions.push({ type: 'length', description: `Ograniczenie długości: ${tags.maxlength}` });
-        }
-        
-        // Zakaz skrętu
-        if (tags['restriction'] && tags['restriction'].includes('no_')) {
-          restrictions.push({ type: 'no_turn', description: 'Zakaz skrętu' });
-        }
-        
-        // Zakaz zawracania
-        if (tags['restriction'] === 'no_u_turn') {
-          restrictions.push({ type: 'no_u_turn', description: 'Zakaz zawracania' });
-        }
-        
-        // Pobieramy także informacje o nawierzchni drogi
-        if (tags.surface) {
-          const surfaceType = tags.surface;
-          let surfaceDescription = 'Nawierzchnia: ';
-          
-          switch(surfaceType) {
-            case 'asphalt':
-              surfaceDescription += 'asfaltowa';
-              break;
-            case 'concrete':
-              surfaceDescription += 'betonowa';
-              break;
-            case 'paved':
-              surfaceDescription += 'utwardzona';
-              break;
-            case 'unpaved':
-              surfaceDescription += 'nieutwardzona';
-              break;
-            case 'gravel':
-              surfaceDescription += 'żwirowa';
-              break;
-            case 'paving_stones':
-              surfaceDescription += 'brukowa';
-              break;
-            case 'cobblestone':
-              surfaceDescription += 'kocie łby';
-              break;
-            case 'dirt':
-              surfaceDescription += 'gruntowa';
-              break;
-            case 'grass':
-              surfaceDescription += 'trawiasta';
-              break;
-            case 'sand':
-              surfaceDescription += 'piaszczysta';
-              break;
-            default:
-              surfaceDescription += surfaceType;
-          }
-          
-          restrictions.push({ type: 'surface', description: surfaceDescription });
-        }
-        
-        // Dozwolona maksymalna prędkość jest już obsługiwana osobno
-        
-        return restrictions;
-      }
-      
-      // Zwróć ikonę dla danego typu ograniczenia
-      function getRestrictionIcon(type) {
-        switch (type) {
-          case 'no_entry':
-            return '<i class="fas fa-ban" style="color: #ff0000;"></i>';
-          case 'one_way':
-            return '<i class="fas fa-arrow-right" style="color: #0066ff;"></i>';
-          case 'weight':
-            return '<i class="fas fa-truck" style="color: #ff9900;"></i>';
-          case 'height':
-            return '<i class="fas fa-arrows-alt-v" style="color: #ff9900;"></i>';
-          case 'width':
-            return '<i class="fas fa-arrows-alt-h" style="color: #ff9900;"></i>';
-          case 'construction':
-            return '<i class="fas fa-hard-hat" style="color: #ffcc00;"></i>';
-          case 'no_vehicles':
-            return '<i class="fas fa-car" style="color: #ff0000;"></i>';
-          case 'no_motor_vehicles':
-            return '<i class="fas fa-car" style="color: #ff0000;"></i>';
-          case 'no_trucks':
-            return '<i class="fas fa-truck" style="color: #ff0000;"></i>';
-          case 'no_motorcycles':
-            return '<i class="fas fa-motorcycle" style="color: #ff0000;"></i>';
-          case 'no_pedestrians':
-            return '<i class="fas fa-walking" style="color: #ff0000;"></i>';
-          case 'no_bicycles':
-            return '<i class="fas fa-bicycle" style="color: #ff0000;"></i>';
-          case 'time_restriction':
-            return '<i class="fas fa-clock" style="color: #0066ff;"></i>';
-          case 'speed_conditional':
-            return '<i class="fas fa-tachometer-alt" style="color: #ff9900;"></i>';
-          case 'living_street':
-            return '<i class="fas fa-home" style="color: #0066ff;"></i>';
-          case 'pedestrian_zone':
-            return '<i class="fas fa-walking" style="color: #0066ff;"></i>';
-          case 'trucks_destination':
-            return '<i class="fas fa-truck" style="color: #0066ff;"></i>';
-          case 'destination_only':
-            return '<i class="fas fa-flag-checkered" style="color: #0066ff;"></i>';
-          case 'access_conditional':
-            return '<i class="fas fa-calendar-alt" style="color: #ff9900;"></i>';
-          case 'length':
-            return '<i class="fas fa-ruler-horizontal" style="color: #ff9900;"></i>';
-          case 'no_turn':
-            return '<i class="fas fa-undo" style="color: #ff0000;"></i>';
-          case 'no_u_turn':
-            return '<i class="fas fa-undo" style="color: #ff0000;"></i>';
-          case 'surface':
-            return '<i class="fas fa-road" style="color: #999999;"></i>';
-          default:
-            return '<i class="fas fa-exclamation-triangle" style="color: #ff9900;"></i>';
-        }
-      }
-      
-      // Zaktualizuj wyświetlanie informacji o ulicy i ograniczeniach
-      function updateStreetDisplay(roadName, restrictions) {
-        // Usuń poprzedni element, jeśli istnieje
-        const oldStreetDisplay = document.getElementById('streetDisplay');
-        if (oldStreetDisplay) {
-          oldStreetDisplay.remove();
-        }
-        
-        // Utwórz kontener dla informacji o ulicy
-        const streetDisplay = document.createElement('div');
-        streetDisplay.className = 'street-display';
-        streetDisplay.id = 'streetDisplay';
-        streetDisplay.style.position = 'fixed';
-        streetDisplay.style.bottom = '180px';
-        streetDisplay.style.left = '50%';
-        streetDisplay.style.transform = 'translateX(-50%)';
-        streetDisplay.style.background = 'rgba(0,0,0,0.8)';
-        streetDisplay.style.color = 'white';
-        streetDisplay.style.padding = '10px 15px';
-        streetDisplay.style.borderRadius = '20px';
-        streetDisplay.style.fontFamily = 'Arial, sans-serif';
-        streetDisplay.style.fontSize = '16px';
-        streetDisplay.style.zIndex = '1000';
-        streetDisplay.style.minWidth = '220px';
-        streetDisplay.style.maxWidth = '90%';
-        streetDisplay.style.textAlign = 'center';
-        streetDisplay.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.3)';
-        streetDisplay.style.transition = 'all 0.3s ease';
-        
-        // Dodaj nazwę ulicy
-        const roadNameElement = document.createElement('div');
-        roadNameElement.textContent = roadName;
-        roadNameElement.style.fontWeight = 'bold';
-        roadNameElement.style.fontSize = '18px';
-        roadNameElement.style.marginBottom = restrictions.length > 0 ? '5px' : '0';
-        streetDisplay.appendChild(roadNameElement);
-        
-        // Dodaj ograniczenia, jeśli istnieją
-        if (restrictions.length > 0) {
-          // Dodaj informację o liczbie ograniczeń i przycisk zwijania/rozwijania
-          const toggleContainer = document.createElement('div');
-          toggleContainer.style.display = 'flex';
-          toggleContainer.style.justifyContent = 'space-between';
-          toggleContainer.style.alignItems = 'center';
-          toggleContainer.style.marginTop = '5px';
-          toggleContainer.style.marginBottom = '8px';
-          toggleContainer.style.padding = '5px 0';
-          toggleContainer.style.borderTop = '1px solid rgba(255, 255, 255, 0.2)';
-          toggleContainer.style.borderBottom = '1px solid rgba(255, 255, 255, 0.2)';
-          
-          const restrictionsCount = document.createElement('div');
-          restrictionsCount.textContent = `${restrictions.length} ${restrictions.length === 1 ? 'ograniczenie' : 'ograniczenia'}`;
-          restrictionsCount.style.fontSize = '14px';
-          restrictionsCount.style.color = '#999';
-          toggleContainer.appendChild(restrictionsCount);
-          
-          const toggleButton = document.createElement('button');
-          toggleButton.innerHTML = '<i class="fas fa-chevron-down"></i>';
-          toggleButton.style.background = 'transparent';
-          toggleButton.style.border = 'none';
-          toggleButton.style.color = '#999';
-          toggleButton.style.cursor = 'pointer';
-          toggleButton.style.fontSize = '14px';
-          toggleButton.style.padding = '0 5px';
-          toggleButton.setAttribute('aria-label', 'Pokaż/ukryj ograniczenia');
-          toggleContainer.appendChild(toggleButton);
-          
-          streetDisplay.appendChild(toggleContainer);
-          
-          // Kontener dla ograniczeń, który będzie można zwinąć/rozwinąć
-          const restrictionsContainer = document.createElement('div');
-          restrictionsContainer.id = 'restrictionsContainer';
-          restrictionsContainer.style.display = 'flex';
-          restrictionsContainer.style.flexDirection = 'column';
-          restrictionsContainer.style.gap = '6px';
-          restrictionsContainer.style.fontSize = '14px';
-          restrictionsContainer.style.maxHeight = '200px';
-          restrictionsContainer.style.overflow = 'auto';
-          restrictionsContainer.style.transition = 'max-height 0.3s ease';
-          restrictionsContainer.style.padding = '5px 0';
-          
-          // Pogrupuj ograniczenia według typu
-          const groupedRestrictions = {};
-          restrictions.forEach(restriction => {
-            const category = getCategoryForRestriction(restriction.type);
-            if (!groupedRestrictions[category]) {
-              groupedRestrictions[category] = [];
-            }
-            groupedRestrictions[category].push(restriction);
-          });
-          
-          // Dodaj ograniczenia pogrupowane
-          Object.keys(groupedRestrictions).forEach(category => {
-            // Nagłówek kategorii
-            const categoryHeader = document.createElement('div');
-            categoryHeader.textContent = getTranslatedCategory(category);
-            categoryHeader.style.fontWeight = 'bold';
-            categoryHeader.style.color = '#aaa';
-            categoryHeader.style.fontSize = '12px';
-            categoryHeader.style.textAlign = 'left';
-            categoryHeader.style.marginTop = '5px';
-            categoryHeader.style.textTransform = 'uppercase';
-            restrictionsContainer.appendChild(categoryHeader);
-            
-            // Ograniczenia w kategorii
-            groupedRestrictions[category].forEach(restriction => {
-              const restrictionElement = document.createElement('div');
-              restrictionElement.style.display = 'flex';
-              restrictionElement.style.alignItems = 'center';
-              restrictionElement.style.textAlign = 'left';
-              restrictionElement.style.padding = '3px 0';
+      //   // Wywołanie API routingu TomTom
+      //   const routingApi = 'https://api.tomtom.com/routing/1/calculateRoute/' + 
+      //         userLocation.lat + ',' + userLocation.lng + ':' + 
+      //         destination.lat + ',' + destination.lng + 
+      //         '/json?key=' + apiKey + 
+      //         '&instructionsType=text' +
+      //         '&language=pl-PL' +
+      //         '&traffic=true' +
+      //         '&travelMode=car' +
+      //         '&vehicleHeading=' + (userHeading || 0);
               
-              // Dodaj ikonę ograniczenia
-              const iconSpan = document.createElement('span');
-              iconSpan.innerHTML = getRestrictionIcon(restriction.type);
-              iconSpan.style.marginRight = '8px';
-              iconSpan.style.display = 'flex';
-              iconSpan.style.alignItems = 'center';
-              iconSpan.style.justifyContent = 'center';
-              iconSpan.style.width = '20px';
+      //   // Pobierz trasę
+      //   fetch(routingApi)
+      //     .then(response => {
+      //       if (!response.ok) {
+      //         throw new Error('Nie można obliczyć trasy');
+      //       }
+      //       return response.json();
+      //     })
+      //     .then(data => {
+      //       // Obsłuż odpowiedź
+      //       if (data && data.routes && data.routes.length > 0) {
+      //         // Zapisz trasę
+      //         currentRoute = data.routes[0];
               
-              const textSpan = document.createElement('span');
-              textSpan.textContent = restriction.description;
+      //         // Dodaj trasę do mapy
+      //         addRouteToMap(currentRoute);
               
-              restrictionElement.appendChild(iconSpan);
-              restrictionElement.appendChild(textSpan);
-              restrictionsContainer.appendChild(restrictionElement);
-            });
-          });
-          
-          streetDisplay.appendChild(restrictionsContainer);
-          
-          // Logika zwijania/rozwijania
-          let isExpanded = true;
-          toggleButton.addEventListener('click', () => {
-            isExpanded = !isExpanded;
-            if (isExpanded) {
-              restrictionsContainer.style.maxHeight = '200px';
-              restrictionsContainer.style.padding = '5px 0';
-              toggleButton.innerHTML = '<i class="fas fa-chevron-up"></i>';
-          } else {
-              restrictionsContainer.style.maxHeight = '0';
-              restrictionsContainer.style.padding = '0';
-              toggleButton.innerHTML = '<i class="fas fa-chevron-down"></i>';
-            }
-          });
-        }
-        
-        // Dodaj do dokumentu
-        document.body.appendChild(streetDisplay);
-      }
-      
-      // Określ kategorię dla ograniczenia
-      function getCategoryForRestriction(type) {
-        switch (type) {
-          case 'no_entry':
-          case 'no_vehicles':
-          case 'no_motor_vehicles':
-          case 'no_trucks':
-          case 'no_motorcycles':
-          case 'no_pedestrians':
-          case 'no_bicycles':
-          case 'no_turn':
-          case 'no_u_turn':
-            return 'prohibition';
+      //         // Pokaż panel nawigacji
+      //         showNavigationPanel(currentRoute);
+              
+      //         // Podaj pierwszą instrukcję głosową
+      //         if (currentRoute.guidance && currentRoute.guidance.instructions && currentRoute.guidance.instructions.length > 0) {
+      //           currentStep = 0;
+      //           const firstInstruction = currentRoute.guidance.instructions[0];
+      //           speakInstruction("Rozpoczęto nawigację. " + firstInstruction.message);
+      //         }
+              
+      //         // Ustaw timer aktualizacji trasy
+      //         if (routeUpdateInterval) {
+      //           clearInterval(routeUpdateInterval);
+      //         }
+              
+      //         routeUpdateInterval = setInterval(() => {
+      //           updateRouteProgress();
+      //         }, 5000);
+              
+      //         // Ukryj komunikat o uruchamianiu
+      //         if (messageBox && !messageBox.getAttribute('hidden')) {
+      //           messageBox.setAttribute('hidden', true);
+      //         }
+      //       } else {
+      //         throw new Error('Brak dostępnych tras');
+      //       }
+      //     })
+      //     .catch(error => {
+      //       console.error('Błąd podczas obliczania trasy:', error);
+      //       displayErrorMessage('Nie można obliczyć trasy: ' + error.message);
             
-          case 'weight':
-          case 'height':
-          case 'width':
-          case 'length':
-            return 'limitation';
-            
-          case 'one_way':
-          case 'living_street':
-          case 'pedestrian_zone':
-          case 'trucks_destination':
-          case 'destination_only':
-            return 'access';
-            
-          case 'time_restriction':
-          case 'speed_conditional':
-          case 'access_conditional':
-            return 'conditional';
-            
-          case 'construction':
-            return 'warning';
-            
-          case 'surface':
-            return 'info';
-            
-          default:
-            return 'other';
-        }
-      }
-      
-      // Domyślne ograniczenia prędkości dla różnych typów dróg w Polsce
-      function getDefaultSpeedLimit(highwayType) {
-        switch (highwayType) {
-          case 'motorway':
-            return 140;
-          case 'trunk':
-            return 120;
-          case 'primary':
-            return 90;
-          case 'secondary':
-            return 90;
-          case 'tertiary':
-            return 90;
-          case 'unclassified':
-            return 90;
-          case 'residential':
-            return 50;
-          case 'service':
-            return 30;
-          case 'living_street':
-            return 20;
-          default:
-            return 50;
-        }
-      }
+      //       // Usuń marker docelowy w przypadku błędu
+      //       destinationMarker.remove();
+      //     });
+      // }
 
-      // Funkcja do obliczania kierunku na podstawie dwóch punktów
-      function calculateHeading(lat1, lon1, lat2, lon2) {
-        // Konwersja stopni na radiany
-        const toRad = (val) => val * Math.PI / 180;
-        
-        // Obliczenie kierunku
-        const y = Math.sin(toRad(lon2-lon1)) * Math.cos(toRad(lat2));
-        const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
-                Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(toRad(lon2-lon1));
-        
-        let bearing = Math.atan2(y, x) * 180 / Math.PI;
-        bearing = (bearing + 360) % 360; // Normalizacja do 0-360
-        
-        return bearing;
-      }
-
-      // Funkcja do obliczania odległości między dwoma punktami
-      function calculateDistance(lat1, lon1, lat2, lon2) {
-        const R = 6371e3; // Promień Ziemi w metrach
-        const toRad = (val) => val * Math.PI / 180;
-        
-        const φ1 = toRad(lat1);
-        const φ2 = toRad(lat2);
-        const Δφ = toRad(lat2-lat1);
-        const Δλ = toRad(lon2-lon1);
-
-        const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-                Math.cos(φ1) * Math.cos(φ2) *
-                Math.sin(Δλ/2) * Math.sin(Δλ/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-        return R * c; // Odległość w metrach
-      }
-
-      // Aktualizacja okręgu dokładności
-      function updateAccuracyCircle(position, accuracy) {
-        if (!userAccuracyCircle) {
-          // Tworzenie okręgu dokładności
-          const el = document.createElement('div');
-          el.className = 'user-accuracy-circle';
-          
-          userAccuracyCircle = new tt.Marker({
-            element: el,
-            anchor: 'center'
-          })
-            .setLngLat(position)
-            .addTo(map);
-        } else {
-          userAccuracyCircle.setLngLat(position);
-        }
-        
-        // Aktualizacja rozmiaru okręgu
-        if (userAccuracyCircle.getElement()) {
-          const pixelSize = accuracy / 0.075 / Math.pow(2, map.getZoom());
+      function handleZoom() {
+        // Aktualizujemy rozmiar okręgu dokładności
+        if (userAccuracyCircle && userAccuracyCircle.getElement() && window.lastAccuracy) {
+          const zoom = map.getZoom();
+          const pixelSize = window.lastAccuracy / 0.075 / Math.pow(2, zoom);
           userAccuracyCircle.getElement().style.width = `${pixelSize}px`;
           userAccuracyCircle.getElement().style.height = `${pixelSize}px`;
+        }
+        
+        // Po zakończeniu zoom, odśwież pozycję markera
+        if (userLocationMarker && lastPosition) {
+          userLocationMarker.setLngLat(lastPosition);
         }
       }
     </script>
