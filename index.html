@@ -597,6 +597,7 @@
       /* Ensure UI elements stay on top in fullscreen mode */
       .center-btn,
       .settings-btn,
+      .search-btn,
       .message-box,
       .speed-container,
       .favorites-btn,
@@ -604,26 +605,245 @@
       .settings-panel,
       .favorites-panel,
       .layers-panel,
+      .search-panel,
       .navigation-panel,
-      .street-info {
-        position: fixed;
-        z-index: 1000; /* Higher z-index to appear above map in fullscreen */
+      .street-info,
+      .permanent-search,
+      .permanent-speed {
+        position: fixed !important; /* Use !important to override any inline styles */
+        z-index: 9999 !important; /* Very high z-index to ensure visibility */
+        pointer-events: auto !important; /* Ensure clicks are captured */
+      }
+      
+      /* Additional styles for fullscreen mode */
+      .mapboxgl-map:-webkit-full-screen {
+        width: 100% !important;
+        height: 100% !important;
+      }
+      
+      .mapboxgl-map:-ms-fullscreen {
+        width: 100% !important;
+        height: 100% !important;
+      }
+      
+      .mapboxgl-map:fullscreen {
+        width: 100% !important;
+        height: 100% !important;
+      }
+      
+      /* Fix for navigation controls in fullscreen */
+      .mapboxgl-ctrl-group {
+        pointer-events: auto !important;
+      }
+      
+      /* Ensure clickable areas work correctly in fullscreen */
+      #map:-webkit-full-screen .mapboxgl-ctrl-top-right,
+      #map:-webkit-full-screen .mapboxgl-ctrl-top-left,
+      #map:-webkit-full-screen .mapboxgl-ctrl-bottom-right,
+      #map:-webkit-full-screen .mapboxgl-ctrl-bottom-left {
+        position: fixed !important;
+        pointer-events: auto !important;
       }
       
       /* Adjust position for fullscreen mode */
-      .tt-fullscreen .speed-container {
-        bottom: 70px; /* Add some extra spacing in fullscreen mode */
+      :fullscreen .speed-container {
+        bottom: 30px !important;
+        left: 30px !important;
+        right: auto !important;
+        transform: none !important;
       }
       
       /* Special handling for the fullscreen button itself */
       .tt-fullscreen-button {
         margin-right: 10px;
       }
+      
+      /* Specific positioning for search panel in fullscreen */
+      :fullscreen .search-panel {
+        top: 70px !important;
+        left: 60px !important;
+        display: none; /* Initially hidden */
+      }
+      
+      /* Specific positioning for favorites panel in fullscreen */
+      :fullscreen .favorites-panel {
+        top: 70px !important;
+        left: 110px !important;
+        display: none; /* Initially hidden */
+      }
+      
+      /* Specific positioning for layers panel in fullscreen */
+      :fullscreen .layers-panel {
+        top: 70px !important;
+        left: 160px !important;
+        display: none; /* Initially hidden */
+      }
+      
+      /* Specific positioning for settings panel in fullscreen */
+      :fullscreen .settings-panel {
+        top: 70px !important;
+        left: 10px !important;
+        display: none; /* Initially hidden */
+      }
+
+      /* Permanent search box that's always visible at the top */
+      .permanent-search {
+        position: fixed !important;
+        top: 10px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        width: 80% !important;
+        max-width: 500px !important;
+        background: white !important;
+        border-radius: 8px !important;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3) !important;
+        z-index: 10000 !important;
+        display: none !important; /* Domyślnie ukryte */
+        align-items: center !important;
+        padding: 5px !important;
+      }
+
+      /* Permanent speed indicator */
+      .permanent-speed {
+        position: fixed !important;
+        bottom: 20px !important;
+        left: 20px !important;
+        display: none !important; /* Domyślnie ukryte */
+        align-items: center !important;
+        z-index: 10000 !important;
+      }
+
+      /* Ensure fullscreen mode displays the permanent search */
+      :fullscreen .permanent-search,
+      :-webkit-full-screen .permanent-search,
+      :-ms-fullscreen .permanent-search,
+      :-moz-full-screen .permanent-search {
+        display: flex !important;
+        top: 10px !important; 
+        z-index: 10000 !important;
+      }
+
+      /* Ensure permanent speed is visible in fullscreen */
+      :fullscreen .permanent-speed,
+      :-webkit-full-screen .permanent-speed,
+      :-ms-fullscreen .permanent-speed,
+      :-moz-full-screen .permanent-speed {
+        display: flex !important;
+        bottom: 20px !important;
+        left: 20px !important;
+        z-index: 10000 !important;
+      }
+
+      /* Ensures user marker and speed limit are visible */
+      :fullscreen .user-direction-marker,
+      :-webkit-full-screen .user-direction-marker,
+      :-ms-fullscreen .user-direction-marker,
+      :-moz-full-screen .user-direction-marker,
+      :fullscreen .user-speed-limit,
+      :-webkit-full-screen .user-speed-limit,
+      :-ms-fullscreen .user-speed-limit,
+      :-moz-full-screen .user-speed-limit {
+        display: block !important;
+        visibility: visible !important;
+        z-index: 9999 !important;
+      }
+
+      .permanent-search input {
+        flex-grow: 1 !important;
+        padding: 8px 12px !important;
+        border: none !important;
+        border-radius: 4px !important;
+        font-size: 16px !important;
+        outline: none !important;
+      }
+
+      .permanent-search button {
+        background: #0066ff !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 4px !important;
+        padding: 8px 12px !important;
+        margin-left: 5px !important;
+        cursor: pointer !important;
+      }
+
+      /* Permanent speed indicator */
+      .permanent-speed {
+        position: fixed !important;
+        bottom: 20px !important;
+        left: 20px !important;
+        display: flex !important;
+        align-items: center !important;
+        z-index: 10000 !important;
+      }
+
+      .permanent-speed-value {
+        background-color: #0066ff !important;
+        color: white !important;
+        border-radius: 8px !important;
+        padding: 8px 15px !important;
+        margin-right: 10px !important;
+        font-family: Arial, sans-serif !important;
+        font-size: 24px !important;
+        font-weight: bold !important;
+        text-align: center !important;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important;
+        min-width: 80px !important;
+      }
+
+      .permanent-speed-limit {
+        background-color: white !important;
+        color: #333 !important;
+        border: 2px solid #ff0000 !important;
+        border-radius: 50% !important;
+        width: 50px !important;
+        height: 50px !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        font-family: Arial, sans-serif !important;
+        font-size: 18px !important;
+        font-weight: bold !important;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important;
+      }
+
+      /* Speed limit near user */
+      .user-speed-limit {
+        position: absolute;
+        top: -45px;
+        left: -15px;
+        background-color: white;
+        color: #333;
+        border: 2px solid #ff0000;
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: Arial, sans-serif;
+        font-size: 12px;
+        font-weight: bold;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        z-index: 11000;
+      }
     </style>
   </head>
 
   <body>
     <div id="map" class="map"></div>
+
+    <!-- Permanent search box that's always visible -->
+    <div class="permanent-search" id="permanentSearch">
+      <input type="text" id="permanentSearchInput" placeholder="Wyszukaj miejsce...">
+      <button id="permanentSearchButton"><i class="fas fa-search"></i></button>
+    </div>
+
+    <!-- Permanent speed indicator -->
+    <!--<div class="permanent-speed" id="permanentSpeed">
+      <div class="permanent-speed-value" id="permanentSpeedValue">0 km/h</div>
+      <div class="permanent-speed-limit" id="permanentSpeedLimit">50</div>
+    </div> -->
 
     <!-- Przycisk wyszukiwania -->
     <button class="search-btn" id="searchBtn"><i class="fas fa-search"></i></button>
@@ -754,6 +974,231 @@
       map.addControl(new tt.NavigationControl());
       map.addControl(new tt.FullscreenControl());
 
+      // Uruchom śledzenie lokalizacji od razu po załadowaniu mapy
+      window.addEventListener('load', function() {
+        setTimeout(() => {
+          // Opóźnij trochę uruchomienie geolokalizacji, aby mapa mogła się poprawnie załadować
+          startUserLocationTracking();
+        }, 1000);
+      });
+
+      // Dodaj wyszukiwanie jako kontrolkę
+      class SearchControl {
+        onAdd(map) {
+          this.map = map;
+          this.container = document.createElement('div');
+          this.container.className = 'mapboxgl-ctrl mapboxgl-ctrl-group search-control';
+          this.container.style.background = 'white';
+          this.container.style.padding = '5px';
+          this.container.style.borderRadius = '4px';
+          this.container.style.width = '240px';
+          this.container.style.zIndex = '9999'; // Dodaj wysoki z-index
+          
+          // Stwórz pole wyszukiwania
+          const searchBox = document.createElement('div');
+          searchBox.style.display = 'flex';
+          
+          // Pole wejściowe
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.placeholder = 'Wyszukaj miejsce...';
+          input.className = 'search-input-control';
+          input.style.width = '200px';
+          input.style.padding = '8px';
+          input.style.border = '1px solid #ccc';
+          input.style.borderRadius = '4px';
+          input.style.marginRight = '5px';
+          
+          // Przycisk wyszukiwania
+          const button = document.createElement('button');
+          button.innerHTML = '<i class="fas fa-search"></i>';
+          button.className = 'search-button-control';
+          button.style.padding = '8px';
+          button.style.background = '#0066ff';
+          button.style.color = 'white';
+          button.style.border = 'none';
+          button.style.borderRadius = '4px';
+          button.style.cursor = 'pointer';
+          
+          // Kontener na wyniki
+          const results = document.createElement('div');
+          results.className = 'search-results-control';
+          results.style.display = 'none';
+          results.style.maxHeight = '200px';
+          results.style.overflowY = 'auto';
+          results.style.marginTop = '5px';
+          results.style.background = 'white';
+          results.style.borderRadius = '4px';
+          results.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+          
+          // Event listeners
+          input.addEventListener('input', debounce((e) => {
+            const query = e.target.value;
+            if (query.length < 3) {
+              results.style.display = 'none';
+              return;
+            }
+            
+            this.performSearch(query, results);
+          }, 300));
+          
+          button.addEventListener('click', () => {
+            const query = input.value;
+            if (query.length >= 3) {
+              this.performSearch(query, results);
+            }
+          });
+          
+          // Dodaj komponenty do kontenera
+          searchBox.appendChild(input);
+          searchBox.appendChild(button);
+          this.container.appendChild(searchBox);
+          this.container.appendChild(results);
+          
+          return this.container;
+        }
+        
+        performSearch(query, resultsContainer) {
+          resultsContainer.style.display = 'block';
+          resultsContainer.innerHTML = '<div style="padding:8px;text-align:center;">Wyszukiwanie...</div>';
+          
+          tt.services.fuzzySearch({
+            key: apiKey,
+            query: query,
+            language: 'pl-PL',
+            limit: 5
+          })
+          .then(response => {
+            resultsContainer.innerHTML = '';
+            
+            if (response.results && response.results.length > 0) {
+              response.results.forEach(result => {
+                const item = document.createElement('div');
+                item.className = 'search-result-item-control';
+                item.style.padding = '8px 12px';
+                item.style.borderBottom = '1px solid #eee';
+                item.style.cursor = 'pointer';
+                item.textContent = result.address.freeformAddress;
+                
+                item.addEventListener('click', () => {
+                  selectDestination(result.position);
+                  resultsContainer.style.display = 'none';
+                });
+                
+                item.addEventListener('mouseenter', () => {
+                  item.style.backgroundColor = '#f5f5f5';
+                });
+                
+                item.addEventListener('mouseleave', () => {
+                  item.style.backgroundColor = 'white';
+                });
+                
+                resultsContainer.appendChild(item);
+              });
+            } else {
+              resultsContainer.innerHTML = '<div style="padding:8px;text-align:center;">Brak wyników</div>';
+            }
+          })
+          .catch(error => {
+            resultsContainer.innerHTML = '<div style="padding:8px;text-align:center;color:red;">Błąd wyszukiwania</div>';
+            console.error('Search error:', error);
+          });
+        }
+        
+        onRemove() {
+          this.container.parentNode.removeChild(this.container);
+          this.map = undefined;
+        }
+      }
+      
+      // Funkcja debounce dla wyszukiwania
+      function debounce(func, wait) {
+        let timeout;
+        return function(...args) {
+          clearTimeout(timeout);
+          timeout = setTimeout(() => func.apply(this, args), wait);
+        };
+      }
+      
+      // Dodaj kontrolkę wyszukiwania
+      const searchControl = new SearchControl();
+      map.addControl(searchControl, 'top-left');
+      
+      // Dodaj kontrolkę prędkości
+      class SpeedControl {
+        onAdd(map) {
+          this.map = map;
+          this.container = document.createElement('div');
+          this.container.className = 'mapboxgl-ctrl mapboxgl-ctrl-group speed-info-control';
+          this.container.style.background = 'white';
+          this.container.style.padding = '8px 12px';
+          this.container.style.borderRadius = '4px';
+          this.container.style.display = 'flex';
+          this.container.style.alignItems = 'center';
+          this.container.style.justifyContent = 'center';
+          this.container.style.minWidth = '120px';
+          this.container.style.zIndex = '9999'; // Dodaj wysoki z-index
+          
+          // Aktualnej prędkości
+          this.speedValue = document.createElement('div');
+          this.speedValue.className = 'current-speed-control';
+          this.speedValue.style.fontSize = '20px';
+          this.speedValue.style.fontWeight = 'bold';
+          this.speedValue.style.marginRight = '8px';
+          this.speedValue.style.color = '#0066ff';
+          this.speedValue.textContent = '0 km/h';
+          
+          // Ograniczenie prędkości
+          this.speedLimit = document.createElement('div');
+          this.speedLimit.className = 'speed-limit-control';
+          this.speedLimit.style.fontSize = '16px';
+          this.speedLimit.style.padding = '3px 8px';
+          this.speedLimit.style.borderRadius = '50%';
+          this.speedLimit.style.border = '2px solid red';
+          this.speedLimit.style.background = 'white';
+          this.speedLimit.style.color = 'black';
+          this.speedLimit.textContent = '50';
+          
+          this.container.appendChild(this.speedValue);
+          this.container.appendChild(this.speedLimit);
+          
+          // Aktualizuj wartości, jeśli dostępne
+          this.updateDisplay();
+          
+          // Ustaw interwał aktualizacji
+          setInterval(() => this.updateDisplay(), 1000);
+          
+          return this.container;
+        }
+        
+        updateDisplay() {
+          // Pobierz aktualną prędkość z istniejących elementów
+          const speedIndicator = document.getElementById('speedIndicator');
+          const speedLimitElement = document.getElementById('speedLimit');
+          
+          if (speedIndicator) {
+            this.speedValue.textContent = speedIndicator.textContent;
+          }
+          
+          if (speedLimitElement) {
+            this.speedLimit.textContent = speedLimitElement.textContent;
+          }
+        }
+        
+        onRemove() {
+          this.container.parentNode.removeChild(this.container);
+          this.map = undefined;
+        }
+      }
+      
+      // Dodaj kontrolkę prędkości
+      const speedControl = new SpeedControl();
+      map.addControl(speedControl, 'top-right');
+
+      // Domyślnie ukryj dodatkowe kontrolki (będą widoczne tylko w trybie pełnoekranowym)
+      document.querySelector('.search-control').style.display = 'none';
+      document.querySelector('.speed-info-control').style.display = 'none';
+
       // Funkcja do tworzenia niestandardowej kontrolki
       function createCustomControl(options) {
         const defaultOptions = {
@@ -847,6 +1292,37 @@
       
       // Dodaj kontrolkę do mapy w pozycji domyślnej
       map.addControl(favoritesControl, 'top-right');
+      
+      // Dodaj kontrolkę centrowania
+      const centerControl = createCustomControl({
+        iconClass: 'fa-solid fa-location-crosshairs',
+        title: 'Centruj mapę',
+        onClick: () => {
+          // Centruj mapę na pozycji użytkownika
+          if (!userLocationMarker) {
+            displayErrorMessage("Uruchamiam śledzenie lokalizacji...");
+            startUserLocationTracking();
+            return;
+          }
+          
+          const userLocation = userLocationMarker.getLngLat();
+          const bearing = mapRotationEnabled ? userHeading || 0 : 0;
+          
+            map.flyTo({
+            center: userLocation,
+            zoom: 18,
+            bearing: bearing,
+            duration: 1000,
+            easing: (t) => t * (2 - t) // Funkcja easing dla płynniejszej animacji
+          });
+          
+          isMapCentered = true;
+          userMovedMap = false;
+        }
+      });
+      
+      // Dodaj kontrolkę do mapy w pozycji bottom-right
+      map.addControl(centerControl, 'bottom-right');
 
       // Obsługa zmiany trybu pełnoekranowego
       map.on('fullscreenchange', function() {
@@ -855,66 +1331,903 @@
                              document.webkitFullscreenElement || 
                              document.msFullscreenElement;
         
+        console.log('Tryb pełnoekranowy zmieniony:', isFullscreen ? 'włączony' : 'wyłączony');
+        
+        // Przełączanie widoczności elementów UI
+        const permanentSearch = document.getElementById('permanentSearch');
+        const permanentSpeed = document.getElementById('permanentSpeed');
+        const searchBtn = document.getElementById('searchBtn');
+        
+        if (permanentSearch) {
+          permanentSearch.style.display = isFullscreen ? 'flex' : 'none';
+          permanentSearch.style.position = 'fixed';
+          permanentSearch.style.zIndex = '10000';
+        }
+        
+        if (permanentSpeed) {
+          permanentSpeed.style.display = isFullscreen ? 'flex' : 'none';
+          permanentSpeed.style.position = 'fixed';
+          permanentSpeed.style.zIndex = '10000';
+        }
+        
+        if (searchBtn) {
+          searchBtn.style.display = isFullscreen ? 'none' : 'block';
+        }
+        
         // Dostosuj elementy UI w trybie pełnoekranowym
         const uiElements = [
-          centerButton,
-          settingsBtn,
-          messageBox,
+          document.getElementById('centerButton'),
+          document.getElementById('searchBtn'),
+          document.querySelector('.settings-btn'),
+          document.getElementById('messageBox'),
           document.getElementById('speedContainer'),
           document.getElementById('favoritesBtn'),
           document.getElementById('layersBtn'),
           document.getElementById('settingsPanel'),
           document.getElementById('favoritesPanel'),
           document.getElementById('layersPanel'),
+          document.getElementById('searchPanel'),
           document.getElementById('navigationPanel'),
-          document.getElementById('streetInfo')
+          document.getElementById('permanentSearch'),
+          document.getElementById('permanentSpeed')
         ];
         
-        // Upewnij się, że elementy UI pozostają widoczne
+        // Upewnij się, że elementy UI pozostają widoczne i klikalne
         uiElements.forEach(element => {
           if (element) {
-            // Ustawienie stylu fixed lub absolute w zależności od trybu
-            element.style.position = isFullscreen ? 'fixed' : '';
+            // Ustawienie stylu dla trybu pełnoekranowego
+            if (isFullscreen) {
+              element.style.position = 'fixed';
+              element.style.zIndex = '9999';
+              element.style.pointerEvents = 'auto';
+            } else {
+              // Przywróć oryginalne style po wyjściu z pełnego ekranu
+              if (element.id !== 'permanentSearch' && element.id !== 'permanentSpeed') {
+                element.style.position = '';
+                element.style.zIndex = '';
+                element.style.pointerEvents = '';
+              }
+            }
             
             // Dodatkowe dostosowania dla konkretnych elementów
             if (element === document.getElementById('speedContainer') && isFullscreen) {
-              element.style.bottom = '70px';
+              // Przesuń wskaźnik prędkości do lewego dolnego rogu
+              element.style.bottom = '30px';
+              element.style.left = '30px';
+              element.style.right = 'auto';
+              element.style.transform = 'none';
+            } else if (element === document.getElementById('speedContainer') && !isFullscreen) {
+              // Przywróć oryginalną pozycję
+              element.style.bottom = '100px';
+              element.style.left = '50%';
+              element.style.right = '';
+              element.style.transform = 'translateX(-50%)';
             }
           }
         });
         
-        console.log('Tryb pełnoekranowy zmieniony:', isFullscreen ? 'włączony' : 'wyłączony');
+        // Wymuszenie odświeżenia uchwytów zdarzeń w trybie pełnoekranowym
+        if (isFullscreen) {
+          // Upewnij się, że permanent search i speed są widoczne
+          const permanentSearch = document.getElementById('permanentSearch');
+          const permanentSpeed = document.getElementById('permanentSpeed');
+          
+          if (permanentSearch) {
+            permanentSearch.style.display = 'flex';
+            permanentSearch.style.position = 'fixed';
+            permanentSearch.style.zIndex = '10000';
+            permanentSearch.style.pointerEvents = 'auto';
+          }
+          
+          if (permanentSpeed) {
+            permanentSpeed.style.display = 'flex';
+            permanentSpeed.style.position = 'fixed';
+            permanentSpeed.style.zIndex = '10000';
+            permanentSpeed.style.pointerEvents = 'auto';
+          }
+
+                                        // Odśwież strzałkę użytkownika
+          if (lastPosition) {
+            // Jeśli marker nie istnieje, utwórz go ponownie
+            if (!userLocationMarker) {
+              console.log("Tworzę nowy marker użytkownika w trybie pełnoekranowym");
+              createUserMarker(lastPosition[1], lastPosition[0]);
+            } 
+            // Aktualizuj pozycję istniejącego markera
+            else {
+              console.log("Aktualizuję marker użytkownika w trybie pełnoekranowym");
+              userLocationMarker.setLngLat(lastPosition);
+              
+              // Upewnij się, że marker jest widoczny
+              try {
+                const el = userLocationMarker.getElement();
+                if (el) {
+                  el.style.display = 'block';
+                  el.style.visibility = 'visible';
+                  el.style.zIndex = '9999';
+                  
+                  // Ustaw odpowiednią rotację
+                  if (userHeading !== null) {
+                    el.style.transform = `rotate(${userHeading}deg)`;
+                  }
+                }
+              } catch (error) {
+                console.error("Błąd przy aktualizacji elementu markera:", error);
+              }
+            }
+          }
+          
+          // Ustaw interwał aktualizacji strzałki
+          if (!window.arrowUpdateInterval) {
+            window.arrowUpdateInterval = setInterval(() => {
+              if (userLocationMarker && lastPosition) {
+                userLocationMarker.setLngLat(lastPosition);
+                try {
+                  const el = userLocationMarker.getElement();
+                  if (el) {
+                    el.style.display = 'block';
+                    el.style.visibility = 'visible';
+                    el.style.zIndex = '9999';
+                    
+                    // Ustaw odpowiednią rotację
+                    if (userHeading !== null) {
+                      el.style.transform = `rotate(${userHeading}deg)`;
+                    }
+                  }
+                } catch (error) {
+                  console.error("Błąd przy interwałowej aktualizacji markera:", error);
+                }
+              }
+            }, 500);
+          }
+          
+          // Odświeżenie wszystkich przycisków i paneli
+          removeAllEventListeners();
+          reattachEventListeners();
+          
+          // Dodaj dla pewności aktualizator prędkości na interwał
+          if (!window.speedUpdateInterval) {
+            window.speedUpdateInterval = setInterval(() => {
+              if (speedIndicator && currentSpeed !== null) {
+                speedIndicator.textContent = Math.round(currentSpeed) + " km/h";
+                
+                // Aktualizuj również stały wskaźnik prędkości
+                const permanentSpeedValue = document.getElementById('permanentSpeedValue');
+                const permanentSpeedLimit = document.getElementById('permanentSpeedLimit');
+                
+                if (permanentSpeedValue) {
+                  permanentSpeedValue.textContent = Math.round(currentSpeed) + " km/h";
+                  
+                  // Zmień kolor w zależności od przekroczenia prędkości
+                  if (Math.round(currentSpeed) > currentSpeedLimit) {
+                    permanentSpeedValue.style.backgroundColor = "#ff0000";
+                  } else {
+                    permanentSpeedValue.style.backgroundColor = "#0066ff";
+                  }
+                }
+                
+                if (permanentSpeedLimit) {
+                  permanentSpeedLimit.textContent = currentSpeedLimit;
+                }
+              }
+            }, 1000);
+          }
+          
+          // Popraw centrowanie mapy
+          if (!window.centeringInterval) {
+            centerMapOnUser(true);
+            
+            window.centeringInterval = setInterval(() => {
+              if (autoCenteringEnabled && !userMovedMap) {
+                centerMapOnUser(false);
+              }
+            }, 2000);
+          }
+          
+          // Dodaj obsługę zdarzeń kliknięcia dla permanentnego wyszukiwania w trybie fullscreen
+          const permanentSearchInput = document.getElementById('permanentSearchInput');
+          const permanentSearchButton = document.getElementById('permanentSearchButton');
+          
+          if (permanentSearchInput) {
+            // Najpierw usuń wszystkie stare handlery
+            const newPermanentSearchInput = permanentSearchInput.cloneNode(true);
+            if (permanentSearchInput.parentNode) {
+              permanentSearchInput.parentNode.replaceChild(newPermanentSearchInput, permanentSearchInput);
+            }
+            
+            // Dodaj nowe handlery
+            newPermanentSearchInput.addEventListener('keypress', function(e) {
+              if (e.key === 'Enter') {
+                performSearch(newPermanentSearchInput.value);
+              }
+            });
+          }
+          
+          if (permanentSearchButton) {
+            // Najpierw usuń wszystkie stare handlery
+            const newPermanentSearchButton = permanentSearchButton.cloneNode(true);
+            if (permanentSearchButton.parentNode) {
+              permanentSearchButton.parentNode.replaceChild(newPermanentSearchButton, permanentSearchButton);
+            }
+            
+            // Dodaj nowe handlery
+            newPermanentSearchButton.addEventListener('click', function() {
+              const input = document.getElementById('permanentSearchInput');
+              if (input) {
+                performSearch(input.value);
+              }
+            });
+          }
+        } else {
+          // Wyczyść interwały po wyjściu z trybu pełnoekranowego
+          if (window.speedUpdateInterval) {
+            clearInterval(window.speedUpdateInterval);
+            window.speedUpdateInterval = null;
+          }
+          
+          if (window.arrowUpdateInterval) {
+            clearInterval(window.arrowUpdateInterval);
+            window.arrowUpdateInterval = null;
+          }
+          
+          if (window.centeringInterval) {
+            clearInterval(window.centeringInterval);
+            window.centeringInterval = null;
+          }
+          
+          // Odświeżenie wszystkich przycisków i paneli
+          removeAllEventListeners();
+          reattachEventListeners();
+        }
       });
 
-      // Inicjalizacja - spróbuj natychmiast pobrać lokalizację
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          function(position) {
-            // Otrzymano lokalizację - wycentruj mapę
-            const { latitude, longitude } = position.coords;
+      // Usuń wszystkie nasłuchiwacze zdarzeń
+      function removeAllEventListeners() {
+        // Przycisk ustawień
+        const settingsBtn = document.querySelector(".settings-btn");
+        const oldSettingsBtn = settingsBtn;
+        if (oldSettingsBtn) {
+          const newSettingsBtn = oldSettingsBtn.cloneNode(true);
+          if (oldSettingsBtn.parentNode) {
+            oldSettingsBtn.parentNode.replaceChild(newSettingsBtn, oldSettingsBtn);
+          }
+        }
+        
+        // Przycisk wyszukiwania
+        const searchBtn = document.getElementById('searchBtn');
+        if (searchBtn) {
+          const oldSearchBtn = searchBtn;
+          const newSearchBtn = oldSearchBtn.cloneNode(true);
+          if (oldSearchBtn.parentNode) {
+            oldSearchBtn.parentNode.replaceChild(newSearchBtn, oldSearchBtn);
+          }
+        }
+        
+        // Przycisk centrowania
+        const centerButton = document.getElementById('centerButton');
+        if (centerButton) {
+          const oldCenterButton = centerButton;
+          const newCenterButton = oldCenterButton.cloneNode(true);
+          if (oldCenterButton.parentNode) {
+            oldCenterButton.parentNode.replaceChild(newCenterButton, oldCenterButton);
+          }
+        }
+        
+        // Przycisk ulubionych
+        const favoritesBtn = document.getElementById('favoritesBtn');
+        if (favoritesBtn) {
+          const oldFavoritesBtn = favoritesBtn;
+          const newFavoritesBtn = oldFavoritesBtn.cloneNode(true);
+          if (oldFavoritesBtn.parentNode) {
+            oldFavoritesBtn.parentNode.replaceChild(newFavoritesBtn, oldFavoritesBtn);
+          }
+        }
+        
+        // Przycisk warstw
+        const layersBtn = document.getElementById('layersBtn');
+        if (layersBtn) {
+          const oldLayersBtn = layersBtn;
+          const newLayersBtn = oldLayersBtn.cloneNode(true);
+          if (oldLayersBtn.parentNode) {
+            oldLayersBtn.parentNode.replaceChild(newLayersBtn, oldLayersBtn);
+          }
+        }
+        
+        // Przycisk zamknięcia komunikatu
+        const messageBoxClose = document.getElementById('messageBoxClose');
+        if (messageBoxClose) {
+          const oldMessageBoxClose = messageBoxClose;
+          const newMessageBoxClose = oldMessageBoxClose.cloneNode(true);
+          if (oldMessageBoxClose.parentNode) {
+            oldMessageBoxClose.parentNode.replaceChild(newMessageBoxClose, oldMessageBoxClose);
+          }
+        }
+        
+        // Przycisk zamknięcia panelu nawigacji
+        const navigationClose = document.getElementById('navigationClose');
+        if (navigationClose) {
+          const oldNavigationClose = navigationClose;
+          const newNavigationClose = oldNavigationClose.cloneNode(true);
+          if (oldNavigationClose.parentNode) {
+            oldNavigationClose.parentNode.replaceChild(newNavigationClose, oldNavigationClose);
+          }
+        }
+      }
+
+      // Ponownie dodaj nasłuchiwacze zdarzeń
+      function reattachEventListeners() {
+        // Przycisk ustawień
+        const settingsBtn = document.querySelector(".settings-btn");
+        if (settingsBtn) {
+          settingsBtn.addEventListener("click", function() {
+            const settingsPanel = document.getElementById("settingsPanel");
+            if (settingsPanel) {
+              settingsPanel.style.display = settingsPanel.style.display === "block" ? "none" : "block";
+            }
+          });
+        }
+        
+        // Przycisk wyszukiwania
+        const searchBtn = document.getElementById('searchBtn');
+        if (searchBtn) {
+          searchBtn.addEventListener('click', function() {
+            const searchPanel = document.getElementById('searchPanel');
+            if (searchPanel) {
+              searchPanel.style.display = searchPanel.style.display === 'block' ? 'none' : 'block';
+              
+              if (searchPanel.style.display === 'block') {
+                const searchInput = document.getElementById('searchInput');
+                if (searchInput) {
+                  searchInput.focus();
+                }
+              }
+            }
+          });
+        }
+        
+        // Permanent search box
+        const permanentSearchInput = document.getElementById('permanentSearchInput');
+        const permanentSearchButton = document.getElementById('permanentSearchButton');
+        
+        if (permanentSearchInput && permanentSearchButton) {
+          // Input on enter
+          permanentSearchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+              performSearch(permanentSearchInput.value);
+            }
+          });
+          
+          // Button click
+          permanentSearchButton.addEventListener('click', function() {
+            performSearch(permanentSearchInput.value);
+          });
+        }
+        
+        // Przycisk centrowania
+        const centerButton = document.getElementById('centerButton');
+        if (centerButton) {
+          centerButton.addEventListener('click', function() {
+            if (!userLocationMarker) {
+              displayErrorMessage("Uruchamiam śledzenie lokalizacji...");
+              startUserLocationTracking();
+              return;
+            }
+            
+            const userLocation = userLocationMarker.getLngLat();
+            const bearing = mapRotationEnabled ? userHeading || 0 : 0;
+            
             map.flyTo({
-              center: [longitude, latitude],
-              zoom: 16,
+              center: userLocation,
+              zoom: 18,
+              bearing: bearing,
+              duration: 1000,
+              easing: (t) => t * (2 - t) // Funkcja easing dla płynniejszej animacji
+            });
+            
+            isMapCentered = true;
+            userMovedMap = false;
+            
+            // Włącz autocentrowanie po kliknięciu przycisku
+            autoCenteringEnabled = true;
+            displayErrorMessage("Autocentrowanie włączone", 2000);
+          });
+        }
+        
+        // Przycisk ulubionych
+        const favoritesBtn = document.getElementById('favoritesBtn');
+        if (favoritesBtn) {
+          favoritesBtn.addEventListener('click', function() {
+            const favoritesPanel = document.getElementById('favoritesPanel');
+            if (favoritesPanel) {
+              favoritesPanel.style.display = favoritesPanel.style.display === 'block' ? 'none' : 'block';
+              
+              if (favoritesPanel.style.display === 'block') {
+                renderFavorites();
+              }
+            }
+          });
+        }
+        
+        // Przycisk warstw
+        const layersBtn = document.getElementById('layersBtn');
+        if (layersBtn) {
+          layersBtn.addEventListener('click', function() {
+            const layersPanel = document.getElementById('layersPanel');
+            if (layersPanel) {
+              layersPanel.style.display = layersPanel.style.display === 'block' ? 'none' : 'block';
+            }
+          });
+        }
+        
+        // Przycisk zamknięcia komunikatu
+        const messageBoxClose = document.getElementById('messageBoxClose');
+        const messageBox = document.getElementById('messageBox');
+        if (messageBoxClose && messageBox) {
+          messageBoxClose.addEventListener('click', function() {
+            messageBox.setAttribute('hidden', true);
+            if (window.messageHideTimeout) {
+              clearTimeout(window.messageHideTimeout);
+              window.messageHideTimeout = null;
+            }
+          });
+        }
+        
+        // Przycisk zamknięcia panelu nawigacji
+        const navigationClose = document.getElementById('navigationClose');
+        if (navigationClose) {
+          navigationClose.addEventListener('click', function() {
+            // Zatrzymaj aktualizację trasy
+            if (routeUpdateInterval) {
+              clearInterval(routeUpdateInterval);
+              routeUpdateInterval = null;
+            }
+            
+            // Ukryj panel
+            const navigationPanel = document.getElementById('navigationPanel');
+            if (navigationPanel) {
+              navigationPanel.style.display = 'none';
+            }
+            
+            // Usuń trasę z mapy
+            if (map.getLayer('route')) {
+              map.removeLayer('route');
+            }
+            
+            if (map.getSource('route')) {
+              map.removeSource('route');
+            }
+            
+            // Zresetuj zmienne nawigacji
+            currentRoute = null;
+            currentStep = 0;
+            
+            // Powiedz użytkownikowi, że nawigacja została zakończona
+            speakInstruction("Nawigacja zakończona");
+          });
+        }
+        
+        // Obsługa wyszukiwania
+        const searchInput = document.getElementById('searchInput');
+        const searchResults = document.getElementById('searchResults');
+        if (searchInput && searchResults) {
+          let searchTimeout;
+          searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            const query = e.target.value;
+            
+            if (query.length < 3) {
+              searchResults.innerHTML = '';
+              return;
+            }
+
+            searchTimeout = setTimeout(() => {
+              tt.services.fuzzySearch({
+                key: apiKey,
+                query: query,
+                language: 'pl-PL',
+                limit: 5
+              })
+              .then(response => {
+                searchResults.innerHTML = '';
+                response.results.forEach(result => {
+                  const div = document.createElement('div');
+                  div.className = 'search-result-item';
+                  div.textContent = result.address.freeformAddress;
+                  div.addEventListener('click', () => {
+                    displayErrorMessage("Znaleziono: " + result.address.freeformAddress + ". Uruchamiam nawigację...", 3000);
+                    selectDestination(result.position);
+                    const searchPanel = document.getElementById('searchPanel');
+                    if (searchPanel) {
+                      searchPanel.style.display = 'none';
+                    }
+                  });
+                  searchResults.appendChild(div);
+                });
+              })
+              .catch(error => {
+                console.error('Błąd wyszukiwania:', error);
+              });
+            }, 300);
+          });
+        }
+        
+        // Obsługa warstw
+        const speedcamsToggle = document.getElementById('speedcams-toggle');
+        if (speedcamsToggle) {
+          speedcamsToggle.addEventListener('change', (e) => {
+            if (e.target.checked) {
+              loadSpeedCameras();
+              const mapFeaturesLegend = document.getElementById('mapFeaturesLegend');
+              if (mapFeaturesLegend) {
+                mapFeaturesLegend.style.display = 'block';
+              }
+            } else {
+              if (speedcamsLayer) {
+                map.removeLayer('speedcams');
+                map.removeSource('speedcams');
+                speedcamsLayer = null;
+              }
+              updateLegendVisibility();
+            }
+          });
+        }
+        
+        const roadworksToggle = document.getElementById('roadworks-toggle');
+        if (roadworksToggle) {
+          roadworksToggle.addEventListener('change', (e) => {
+            if (e.target.checked) {
+              loadRoadworks();
+              const mapFeaturesLegend = document.getElementById('mapFeaturesLegend');
+              if (mapFeaturesLegend) {
+                mapFeaturesLegend.style.display = 'block';
+              }
+            } else {
+              if (roadworksLayer) {
+                map.removeLayer('roadworks');
+                map.removeSource('roadworks');
+                roadworksLayer = null;
+              }
+              updateLegendVisibility();
+            }
+          });
+        }
+        
+        const poiToggle = document.getElementById('poi-toggle');
+        if (poiToggle) {
+          poiToggle.addEventListener('change', (e) => {
+            if (e.target.checked) {
+              loadPointsOfInterest();
+            } else {
+              if (poiLayer) {
+                map.removeLayer('pois');
+                map.removeSource('pois');
+                poiLayer = null;
+              }
+            }
+          });
+        }
+        
+        const reportsToggle = document.getElementById('reports-toggle');
+        if (reportsToggle) {
+          reportsToggle.addEventListener('change', (e) => {
+            if (e.target.checked) {
+              if (lastPosition) {
+                loadReportsFromOverpass(lastPosition[1], lastPosition[0]);
+              } else {
+                displayErrorMessage('Najpierw włącz lokalizację GPS');
+                e.target.checked = false;
+              }
+            } else {
+              if (reportsLayer) {
+                map.removeLayer('reports');
+                map.removeSource('reports');
+                reportsLayer = null;
+              }
+            }
+          });
+        }
+        
+        // Obsługa rotacji
+        const rotationToggle = document.getElementById('rotation-toggle');
+        if (rotationToggle) {
+          rotationToggle.addEventListener('change', () => {
+            mapRotationEnabled = rotationToggle.checked;
+            
+            // Jeśli wyłączono rotację, zresetuj orientację mapy
+            if (!mapRotationEnabled && isMapCentered) {
+              map.easeTo({
+                bearing: 0,
+                pitch: 0,
+                duration: 500
+              });
+            } else if (mapRotationEnabled && isMapCentered && userHeading !== null) {
+              // Włączono rotację i znamy kierunek - obróć mapę
+              map.easeTo({
+                bearing: userHeading,
+                duration: 500
+              });
+            }
+          });
+        }
+        
+        // Obsługa budynków 3D
+        const buildingsToggle = document.getElementById('buildings-toggle');
+        if (buildingsToggle) {
+          buildingsToggle.addEventListener("change", () => {
+            if (buildingsToggle.checked) {
+              if (!buildings3DEnabled) {
+                map.set3DBuildings(true);
+                buildings3DEnabled = true;
+                
+                // Ustaw odpowiedni pitch dla lepszego widoku 3D
+                map.easeTo({
+                  pitch: 45,
               duration: 1000
             });
-            // Komunikat
-            displayErrorMessage("Lokalizacja znaleziona! Inicjalizacja śledzenia...");
-          },
-          function(error) {
-            // Błąd lokalizacji - pozostawiamy Warszawę
-            console.warn("Nie można pobrać początkowej lokalizacji:", error);
-            displayErrorMessage("Nie można pobrać Twojej lokalizacji. Wyświetlam domyślny widok.");
-          },
-          {
-            enableHighAccuracy: true,
-            timeout: 5000,
-            maximumAge: 0
+              }
+            } else if (buildings3DEnabled) {
+              map.set3DBuildings(false);
+              buildings3DEnabled = false;
+              
+              // Przywróć płaski widok
+              map.easeTo({
+                pitch: 0,
+                duration: 1000
+              });
+            }
+          });
+        }
+        
+        // Obsługa ruchu drogowego
+        const trafficToggle = document.getElementById("flow-toggle");
+        if (trafficToggle) {
+          trafficToggle.addEventListener("change", () => {
+            if (trafficToggle.checked) {
+              map.showTrafficFlow();
+            } else {
+              map.hideTrafficFlow();
+            }
+          });
+        }
+        
+        // Obsługa dodawania ulubionych
+        const addFavorite = document.getElementById('addFavorite');
+        if (addFavorite) {
+          addFavorite.addEventListener('click', () => {
+            if (!userLocationMarker) {
+              displayErrorMessage('Najpierw włącz lokalizację GPS');
+              return;
+            }
+
+            const position = userLocationMarker.getLngLat();
+            const name = prompt('Nazwa ulubionego miejsca:');
+            
+            if (!name) return;
+            
+            const favorite = {
+              id: Date.now().toString(),
+              name,
+              position: {
+                lat: position.lat,
+                lng: position.lng
+              }
+            };
+            
+            favoriteLocations.push(favorite);
+            localStorage.setItem('favoriteLocations', JSON.stringify(favoriteLocations));
+            
+            renderFavorites();
+            updateFavoritesOnMap();
+          });
+        }
+        
+        console.log("Ponownie przypisano nasłuchiwacze zdarzeń");
+      }
+
+      // Funkcja do centrowania mapy na użytkowniku
+      function centerMapOnUser(smooth = false) {
+        if (!userLocationMarker || !lastPosition) return;
+        
+        const bearing = mapRotationEnabled ? userHeading || 0 : 0;
+        
+        if (smooth) {
+          map.easeTo({
+            center: lastPosition,
+            bearing: bearing,
+            duration: 500
+          });
+        } else {
+          map.flyTo({
+            center: lastPosition,
+            zoom: 18,
+            bearing: bearing,
+            duration: 1000
+          });
+        }
+        
+        isMapCentered = true;
+        userMovedMap = false;
+      }
+
+      // Aktualizacja wskaźnika prędkości
+      function updateSpeedIndicator(speed, latitude, longitude) {
+        // Przelicz prędkość z m/s na km/h
+        if (speed !== null && speed !== undefined) {
+          currentSpeed = speed * 3.6; // konwersja z m/s na km/h
+          const speedKmh = Math.round(currentSpeed);
+          
+          // Aktualizuj wskaźnik prędkości
+          if (speedIndicator) {
+            speedIndicator.textContent = speedKmh + " km/h";
+            
+            // Zmień kolor w zależności od przekroczenia prędkości
+            if (speedKmh > currentSpeedLimit) {
+              speedIndicator.style.backgroundColor = "#ff0000";
+            } else {
+              speedIndicator.style.backgroundColor = "#0066ff";
+            }
           }
+          
+          lastSpeedUpdate = Date.now();
+        } else if (Date.now() - lastSpeedUpdate > 5000) {
+          // Jeśli nie ma aktualizacji prędkości przez 5 sekund, pokaż 0
+          currentSpeed = 0;
+          if (speedIndicator) {
+            speedIndicator.textContent = "0 km/h";
+            speedIndicator.style.backgroundColor = "#0066ff";
+          }
+        }
+      }
+
+      // Funkcja aktualizująca rzeczywiste ograniczenie prędkości
+      function updateRealSpeedLimit(latitude, longitude) {
+        // W rzeczywistej aplikacji użylibyśmy API do pobierania ograniczeń prędkości
+        // Tu symulujemy to na podstawie losowych wartości z predefiniowanymi ograniczeniami
+        
+        // Pobierz aktualny timestamp
+        const now = Date.now();
+        
+        // Aktualizuj ograniczenie prędkości tylko co 10 sekund
+        if (now - window.lastSpeedLimitUpdate < 10000) {
+          return;
+        }
+        
+        window.lastSpeedLimitUpdate = now;
+        
+        // Symulowane ograniczenia prędkości
+        const speedLimits = [30, 40, 50, 70, 90, 120];
+        
+        // Losowo wybierz ograniczenie, ale z większą szansą na 50 km/h
+        const rand = Math.random();
+        let newLimit;
+        
+        if (rand < 0.6) {
+          // 60% szans na 50 km/h
+          newLimit = 50;
+        } else if (rand < 0.7) {
+          // 10% szans na 30 km/h
+          newLimit = 30;
+        } else if (rand < 0.85) {
+          // 15% szans na 70 km/h
+          newLimit = 70;
+        } else if (rand < 0.95) {
+          // 10% szans na 90 km/h
+          newLimit = 90;
+        } else {
+          // 5% szans na 120 km/h
+          newLimit = 120;
+        }
+        
+        // Aktualizuj tylko jeśli się zmieniło
+        if (newLimit !== currentSpeedLimit) {
+          currentSpeedLimit = newLimit;
+          
+          // Aktualizuj wyświetlane ograniczenie
+          if (speedLimit) {
+            speedLimit.textContent = currentSpeedLimit;
+          }
+        }
+      }
+
+      // Obsługa geolokalizacji
+      function startUserLocationTracking() {
+        if (!navigator.geolocation) {
+          displayErrorMessage("Twoja przeglądarka nie obsługuje geolokalizacji.");
+          return;
+        }
+
+        console.log("Uruchamiam śledzenie lokalizacji");
+
+        // Obsługa zdarzenia zoom - ważna dla stabilności markerów
+        map.on('zoom', handleZoom);
+        map.on('move', handleMapMove);
+        map.on('moveend', handleMapMoveEnd);
+
+        // Opcje geolokalizacji z maksymalną dokładnością
+        const options = {
+          enableHighAccuracy: true,
+          maximumAge: 0,
+          timeout: 30000  // Zwiększamy timeout do 30 sekund
+        };
+
+        // Pokaż informację o uruchamianiu lokalizacji
+        displayErrorMessage("Uruchamianie lokalizacji...");
+        
+        // Najpierw spróbujmy uzyskać jednorazową pozycję, aby szybciej ustawić mapę
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            console.log("Otrzymano początkową pozycję", position);
+            // Aktualizuj mapę na podstawie początkowej pozycji
+            updateUserLocation(position);
+            
+            // Pokaż komunikat o sukcesie
+            displayErrorMessage("Lokalizacja znaleziona!", 2000);
+            
+            // Rozpocznij ciągłe śledzenie
+            startContinuousTracking(options);
+          },
+          (error) => {
+            console.error("Błąd podczas uzyskiwania początkowej pozycji:", error);
+            displayErrorMessage("Błąd podczas uzyskiwania pozycji: " + (messages[error.code] || messages.default));
+            
+            // Spróbuj jeszcze raz z mniejszą dokładnością
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                console.log("Otrzymano pozycję z drugiej próby");
+                updateUserLocation(position);
+                startContinuousTracking(options);
+              },
+              (secondError) => {
+                console.error("Drugi błąd lokalizacji:", secondError);
+                displayErrorMessage("Nie można określić Twojej lokalizacji. Sprawdź uprawnienia.");
+              },
+              { enableHighAccuracy: false, timeout: 15000, maximumAge: 0 }
+            );
+          },
+          { ...options, timeout: 10000 } // Krótszy timeout dla pierwszej próby
         );
       }
       
-      // Wymuszenie widoczności przycisku centrowania od początku
-      // centerButton.classList.add('visible');
+      // Funkcja do ciągłego śledzenia lokalizacji
+      function startContinuousTracking(options) {
+        // Rozpocznij śledzenie lokalizacji
+        try {
+          if (userWatchId) {
+            navigator.geolocation.clearWatch(userWatchId);
+          }
+          
+          // Dodanie dodatkowych opcji dla urządzeń mobilnych
+          const mobileOptions = {
+            ...options,
+            // Na urządzeniach mobilnych częściej aktualizujemy pozycję
+            maximumAge: 0
+          };
+          
+          userWatchId = navigator.geolocation.watchPosition(
+            updateUserLocation,
+            handleLocationError,
+            mobileOptions
+          );
+          
+          // Domyślnie włączamy obrót mapy - bardzo ważne na telefonie
+          mapRotationEnabled = true;
+          rotationToggle.checked = true;
+          
+          console.log("Rozpoczęto ciągłe śledzenie lokalizacji, ID:", userWatchId);
+        } catch (e) {
+          console.error("Błąd podczas uruchamiania geolokalizacji:", e);
+          displayErrorMessage("Błąd podczas uruchamiania lokalizacji: " + e.message);
+        }
+      }
+
+      // Aktualizacja widoczności przycisku centrowania
+      function updateCenterButtonVisibility() {
+        if (isMapCentered && !userMovedMap) {
+          centerButton.classList.remove('visible');
+        } else {
+          centerButton.classList.add('visible');
+        }
+      }
       
       // Obsługa zdarzeń mapy
       map.on('movestart', function(e) {
@@ -924,7 +2237,6 @@
           isMapCentered = false;
         }
       });
-
 
       // Funkcja wyboru miejsca docelowego i uruchomienia nawigacji
       function selectDestination(destination) {
@@ -1032,6 +2344,7 @@
             destinationMarker.remove();
           });
       }
+
       // Elementy UI
       const settingsBtn = document.querySelector(".settings-btn");
       const settingsPanel = document.getElementById("settingsPanel");
@@ -1702,16 +3015,31 @@
         
         favoriteLocations.forEach(favorite => {
           const item = document.createElement('div');
-          item.className = 'favorite-item';
+          item.style.padding = '10px';
+          item.style.marginBottom = '5px';
+          item.style.borderRadius = '5px';
+          item.style.backgroundColor = '#f5f5f5';
+          item.style.cursor = 'pointer';
+          item.style.position = 'relative';
           item.textContent = favorite.name;
           
           // Przycisk usuwania
           const deleteBtn = document.createElement('button');
-          deleteBtn.className = 'delete-btn';
           deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+          deleteBtn.style.position = 'absolute';
+          deleteBtn.style.right = '5px';
+          deleteBtn.style.top = '50%';
+          deleteBtn.style.transform = 'translateY(-50%)';
+          deleteBtn.style.color = '#ff0000';
+          deleteBtn.style.background = 'none';
+          deleteBtn.style.border = 'none';
+          deleteBtn.style.cursor = 'pointer';
+          deleteBtn.style.fontSize = '16px';
+          
           deleteBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             removeFavorite(favorite.id);
+            renderFullscreenFavorites(container);
           });
           
           item.appendChild(deleteBtn);
@@ -1719,10 +3047,10 @@
           // Wybór ulubionego miejsca
           item.addEventListener('click', () => {
             selectDestination(favorite.position);
-            favoritesPanel.style.display = 'none';
+            document.getElementById('fullscreen-favorites-panel').style.display = 'none';
           });
           
-          favoritesList.appendChild(item);
+          container.appendChild(item);
         });
       }
 
@@ -2353,6 +3681,26 @@
         } else {
           // Ustaw lokalizację dla markera
           userLocationMarker.setLngLat(userLocation);
+          
+          // Upewnij się, że marker jest widoczny (szczególnie w trybie fullscreen)
+          try {
+            const el = userLocationMarker.getElement();
+            if (el) {
+              el.style.visibility = 'visible';
+              el.style.display = 'block';
+              el.style.zIndex = '9999';
+              
+              // Sprawdź ograniczenie prędkości
+              const userSpeedLimit = document.getElementById('userSpeedLimit');
+              if (userSpeedLimit) {
+                userSpeedLimit.textContent = currentSpeedLimit;
+                userSpeedLimit.style.visibility = 'visible';
+                userSpeedLimit.style.display = 'flex';
+              }
+            }
+          } catch (e) {
+            console.error("Błąd aktualizacji widoczności markera:", e);
+          }
         }
 
         // Aktualizacja kierunku - rotate marker
@@ -2421,6 +3769,9 @@
         // Tworzenie strzałki jako element DOM z SVG
           const el = document.createElement('div');
         el.className = 'user-direction-marker';
+        el.style.zIndex = '9999';
+        el.style.visibility = 'visible';
+        el.style.display = 'block';
         
         // Zamiast używać obrazka, używamy SVG wbudowanego w kod z szerszą strzałką i zaokrąglonymi rogami
         el.innerHTML = `
@@ -2428,6 +3779,7 @@
             <path d="M12 2C11.5 2 11 2.2 10.6 2.6L3 18C2.6 18.8 2.8 19.6 3.2 20.2C3.6 20.8 4.4 21 5 21H19C19.6 21 20.4 20.8 20.8 20.2C21.2 19.6 21.4 18.8 21 18L13.4 2.6C13 2.2 12.5 2 12 2Z" 
                   fill="#0066ff" stroke="#ffffff" stroke-width="1.5" stroke-linejoin="round"/>
           </svg>
+          <div class="user-speed-limit" id="userSpeedLimit">${currentSpeedLimit || 50}</div>
         `;
         
         // Utwórz marker TomTom
@@ -2463,6 +3815,37 @@
           // Pobierz rzeczywiste ograniczenia prędkości
           updateRealSpeedLimit(latitude, longitude);
         }, 1000);
+        
+        // Dodaj interwał dla aktualizacji markera w trybie fullscreen
+        if (!window.userMarkerUpdateInterval) {
+          window.userMarkerUpdateInterval = setInterval(() => {
+            if (userLocationMarker && document.fullscreenElement) {
+              try {
+                const markerEl = userLocationMarker.getElement();
+                if (markerEl) {
+                  markerEl.style.visibility = 'visible';
+                  markerEl.style.display = 'block';
+                  markerEl.style.zIndex = '9999';
+                  
+                  // Sprawdź ograniczenie prędkości
+                  const userSpeedLimit = document.getElementById('userSpeedLimit');
+                  if (userSpeedLimit) {
+                    userSpeedLimit.textContent = currentSpeedLimit;
+                    userSpeedLimit.style.visibility = 'visible';
+                    userSpeedLimit.style.display = 'flex';
+                  }
+                  
+                  // Upewnij się, że strzałka jest prawidłowo obrócona
+                  if (userHeading !== null) {
+                    markerEl.style.transform = `rotate(${userHeading}deg)`;
+                  }
+                }
+              } catch (error) {
+                console.error("Błąd aktualizacji markera:", error);
+              }
+            }
+          }, 500);
+        }
       }
 
       // Mapa jest w pełni załadowana
@@ -2512,18 +3895,33 @@
         // Najpierw spróbujmy uzyskać jednorazową pozycję, aby szybciej ustawić mapę
         navigator.geolocation.getCurrentPosition(
           (position) => {
-            console.log("Otrzymano początkową pozycję");
+            console.log("Otrzymano początkową pozycję", position);
             // Aktualizuj mapę na podstawie początkowej pozycji
             updateUserLocation(position);
+            
+            // Pokaż komunikat o sukcesie
+            displayErrorMessage("Lokalizacja znaleziona!", 2000);
             
             // Rozpocznij ciągłe śledzenie
             startContinuousTracking(options);
           },
           (error) => {
             console.error("Błąd podczas uzyskiwania początkowej pozycji:", error);
-            displayErrorMessage("Błąd podczas uzyskiwania pozycji: " + messages[error.code] || messages.default);
-            // Mimo błędu, rozpocznij ciągłe śledzenie
+            displayErrorMessage("Błąd podczas uzyskiwania pozycji: " + (messages[error.code] || messages.default));
+            
+            // Spróbuj jeszcze raz z mniejszą dokładnością
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                console.log("Otrzymano pozycję z drugiej próby");
+                updateUserLocation(position);
             startContinuousTracking(options);
+              },
+              (secondError) => {
+                console.error("Drugi błąd lokalizacji:", secondError);
+                displayErrorMessage("Nie można określić Twojej lokalizacji. Sprawdź uprawnienia.");
+              },
+              { enableHighAccuracy: false, timeout: 15000, maximumAge: 0 }
+            );
           },
           { ...options, timeout: 10000 } // Krótszy timeout dla pierwszej próby
         );
@@ -2591,6 +3989,10 @@
         
         isMapCentered = true;
         userMovedMap = false;
+        
+        // Włącz autocentrowanie po kliknięciu przycisku
+        autoCenteringEnabled = true;
+        displayErrorMessage("Autocentrowanie włączone", 2000);
       });
 
       // Wyświetlanie komunikatu o błędzie
@@ -2643,15 +4045,15 @@
         // Automatyczne ukrycie po określonym czasie
         if (durationMs > 0) {
           window.messageHideTimeout = setTimeout(() => {
-            if (messageBox && !messageBox.getAttribute('hidden')) {
+          if (messageBox && !messageBox.getAttribute('hidden')) {
               // Płynne ukrycie
               messageBox.style.opacity = "0";
               setTimeout(() => {
-                messageBox.setAttribute('hidden', true);
+            messageBox.setAttribute('hidden', true);
                 messageBox.style.opacity = "1"; // Przywróć opacity dla następnego użycia
               }, 300);
-            }
-          }, durationMs);
+          }
+        }, durationMs);
         }
         
         // Dodanie obsługi kliknięcia przycisku zamknięcia
@@ -2674,7 +4076,7 @@
           isMapCentered = false;
         }
       }
-      
+
       // Dodaj trasę do mapy
       function addRouteToMap(route) {
         // Usuń poprzednią trasę jeśli istnieje
@@ -2906,112 +4308,44 @@
         }
       }
 
-      // // Funkcja wyboru miejsca docelowego i uruchomienia nawigacji
-      // function selectDestination(destination) {
-      //   if (!userLocationMarker) {
-      //     displayErrorMessage("Najpierw włącz lokalizację GPS");
-      //     return;
-      //   }
+      // Funkcja do wykonywania wyszukiwania
+      function performSearch(query) {
+        if (!query || query.length < 3) {
+          displayErrorMessage("Wprowadź co najmniej 3 znaki");
+          return;
+        }
         
-      //   // Wyświetl komunikat o uruchamianiu nawigacji
-      //   displayErrorMessage("Uruchamianie nawigacji...");
+        displayErrorMessage("Wyszukiwanie...", 2000);
         
-      //   // Pobierz aktualne współrzędne użytkownika
-      //   const userLocation = userLocationMarker.getLngLat();
-        
-      //   // Usuń poprzednią trasę, jeśli istnieje
-      //   if (currentRoute && map.getLayer('route')) {
-      //     map.removeLayer('route');
-      //   }
-        
-      //   if (map.getSource('route')) {
-      //     map.removeSource('route');
-      //   }
-        
-      //   // Ukryj popup jeśli są otwarte
-      //   const popups = document.getElementsByClassName('mapboxgl-popup');
-      //   while(popups[0]) {
-      //     popups[0].remove();
-      //   }
-        
-      //   // Dodaj marker docelowy
-      //   let destinationMarker = new tt.Marker()
-      //     .setLngLat([destination.lng, destination.lat])
-      //     .addTo(map);
-        
-      //   // Wycentruj mapę tak aby pokazać obie lokalizacje
-      //   const bounds = new tt.LngLatBounds();
-      //   bounds.extend([userLocation.lng, userLocation.lat]);
-      //   bounds.extend([destination.lng, destination.lat]);
-        
-      //   map.fitBounds(bounds, {
-      //     padding: 100,
-      //     duration: 1000
-      //   });
-        
-      //   // Wywołanie API routingu TomTom
-      //   const routingApi = 'https://api.tomtom.com/routing/1/calculateRoute/' + 
-      //         userLocation.lat + ',' + userLocation.lng + ':' + 
-      //         destination.lat + ',' + destination.lng + 
-      //         '/json?key=' + apiKey + 
-      //         '&instructionsType=text' +
-      //         '&language=pl-PL' +
-      //         '&traffic=true' +
-      //         '&travelMode=car' +
-      //         '&vehicleHeading=' + (userHeading || 0);
-              
-      //   // Pobierz trasę
-      //   fetch(routingApi)
-      //     .then(response => {
-      //       if (!response.ok) {
-      //         throw new Error('Nie można obliczyć trasy');
-      //       }
-      //       return response.json();
-      //     })
-      //     .then(data => {
-      //       // Obsłuż odpowiedź
-      //       if (data && data.routes && data.routes.length > 0) {
-      //         // Zapisz trasę
-      //         currentRoute = data.routes[0];
-              
-      //         // Dodaj trasę do mapy
-      //         addRouteToMap(currentRoute);
-              
-      //         // Pokaż panel nawigacji
-      //         showNavigationPanel(currentRoute);
-              
-      //         // Podaj pierwszą instrukcję głosową
-      //         if (currentRoute.guidance && currentRoute.guidance.instructions && currentRoute.guidance.instructions.length > 0) {
-      //           currentStep = 0;
-      //           const firstInstruction = currentRoute.guidance.instructions[0];
-      //           speakInstruction("Rozpoczęto nawigację. " + firstInstruction.message);
-      //         }
-              
-      //         // Ustaw timer aktualizacji trasy
-      //         if (routeUpdateInterval) {
-      //           clearInterval(routeUpdateInterval);
-      //         }
-              
-      //         routeUpdateInterval = setInterval(() => {
-      //           updateRouteProgress();
-      //         }, 5000);
-              
-      //         // Ukryj komunikat o uruchamianiu
-      //         if (messageBox && !messageBox.getAttribute('hidden')) {
-      //           messageBox.setAttribute('hidden', true);
-      //         }
-      //       } else {
-      //         throw new Error('Brak dostępnych tras');
-      //       }
-      //     })
-      //     .catch(error => {
-      //       console.error('Błąd podczas obliczania trasy:', error);
-      //       displayErrorMessage('Nie można obliczyć trasy: ' + error.message);
+        tt.services.fuzzySearch({
+          key: apiKey,
+          query: query,
+          language: 'pl-PL',
+          limit: 5
+        })
+        .then(response => {
+          if (response.results && response.results.length > 0) {
+            // Wyświetl pierwsze znalezione miejsce
+            const result = response.results[0];
+            displayErrorMessage("Znaleziono: " + result.address.freeformAddress + ". Uruchamiam nawigację...", 3000);
             
-      //       // Usuń marker docelowy w przypadku błędu
-      //       destinationMarker.remove();
-      //     });
-      // }
+            // Wyczyść pole wyszukiwania i rozpocznij nawigację
+            const permanentSearchInput = document.getElementById('permanentSearchInput');
+            if (permanentSearchInput) {
+              permanentSearchInput.value = result.address.freeformAddress;
+            }
+            
+            // Nawigacja do znalezionego miejsca
+            selectDestination(result.position);
+          } else {
+            displayErrorMessage("Nie znaleziono wyników dla: " + query);
+          }
+        })
+        .catch(error => {
+          console.error('Błąd wyszukiwania:', error);
+          displayErrorMessage("Błąd wyszukiwania: " + error.message);
+        });
+      }
 
       function handleZoom() {
         // Aktualizujemy rozmiar okręgu dokładności
@@ -3025,6 +4359,81 @@
         // Po zakończeniu zoom, odśwież pozycję markera
         if (userLocationMarker && lastPosition) {
           userLocationMarker.setLngLat(lastPosition);
+        }
+      }
+
+      // Obsługa zakończenia przesuwania mapy
+      function handleMapMoveEnd(e) {
+        if (e.originalEvent) {
+          console.log("Użytkownik zakończył przesuwanie mapy");
+          lastMapMoveTime = Date.now();
+        }
+      }
+
+      // Inicjalizacja mapy i UI
+      window.addEventListener('load', function() {
+        // Ustaw początkowy stan elementów
+        const permanentSearch = document.getElementById('permanentSearch');
+        const permanentSpeed = document.getElementById('permanentSpeed');
+        
+        if (permanentSearch) {
+          permanentSearch.style.display = 'none'; // Początkowo ukryte
+        }
+        
+        if (permanentSpeed) {
+          permanentSpeed.style.display = 'none'; // Początkowo ukryte
+        }
+        
+        // Sprawdź czy jesteśmy już w trybie fullscreen
+        const isFullscreen = document.fullscreenElement || 
+                             document.mozFullScreenElement || 
+                             document.webkitFullscreenElement || 
+                             document.msFullscreenElement;
+                       
+        if (isFullscreen) {
+          if (permanentSearch) {
+            permanentSearch.style.display = 'flex';
+          }
+          if (permanentSpeed) {
+            permanentSpeed.style.display = 'flex';
+          }
+          
+          // Ukryj standardowe elementy
+          const searchBtn = document.getElementById('searchBtn');
+          if (searchBtn) {
+            searchBtn.style.display = 'none';
+          }
+        }
+      });
+
+      // Obsługa błędów geolokalizacji
+      function handleLocationError(error) {
+        console.error("Błąd geolokalizacji:", error);
+        
+        let errorMessage = "";
+        switch(error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = messages.permissionDenied;
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = messages.notAvailable;
+            break;
+          case error.TIMEOUT:
+            errorMessage = messages.timeout;
+            break;
+          default:
+            errorMessage = messages.default;
+        }
+        
+        displayErrorMessage(errorMessage);
+        
+        // Wyświetl domyślną mapę skoncentrowaną na Warszawie
+        if (!userLocationMarker) {
+          map.flyTo({
+            center: [21.0122, 52.2297], // Warszawa
+            zoom: 13,
+            duration: 1000
+          });
         }
       }
     </script>
